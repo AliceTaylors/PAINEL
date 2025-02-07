@@ -16,6 +16,12 @@ import {
   faArrowLeft,
   faEye,
   faRefresh,
+  faBitcoinSign,
+  faMoneyBillTransfer,
+  faHistory,
+  faChartLine,
+  faCreditCard,
+  faCoins
 } from "@fortawesome/free-solid-svg-icons";
 import CurrencyInput from "react-currency-input-field";
 import Footer from "../../components/Footer";
@@ -60,6 +66,10 @@ export default function Deposit() {
 
   const { t, lang } = useTranslation("dashboard");
 
+  const [amount, setAmount] = useState('');
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   async function getTransaction() {
     const resTransaction = await axios.get("/api/transactions", {
       headers: { token: window.localStorage.getItem("token") },
@@ -96,7 +106,17 @@ export default function Deposit() {
   };
   useEffect(() => {
     getUser();
+    const interval = setInterval(getOrder, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  const getOrder = async () => {
+    const res = await axios.get('/api/transactions', {
+      headers: { token: window.localStorage.getItem('token') },
+    });
+
+    setOrder(res.data.order);
+  };
 
   async function handleSync(e) {
     if (e) e.preventDefault();
@@ -133,49 +153,36 @@ export default function Deposit() {
     router.push("/dashboard/wallet#rootpage");
   }
 
-  async function handleSubmit(e) {
+  const handleDeposit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    if (parseFloat(user.order.amount) >= 6) {
-      return;
-    }
+    try {
+      const res = await axios.post(
+        '/api/transactions',
+        { amount },
+        { headers: { token: window.localStorage.getItem('token') } }
+      );
 
-    if (isNaN(balance)) {
-      alerts.fire({ icon: "warning", text: "Enter a valid amount to charge" });
-      return;
-    }
+      if (res.data.error) {
+        alerts.fire({
+          icon: 'error',
+          text: res.data.error,
+        });
+        setLoading(false);
+        return;
+      }
 
-    if (parseFloat(balance) < 5) {
+      setOrder(res.data.order);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
       alerts.fire({
-        icon: "warning",
-        text: "Minimum value is 5 USD",
+        icon: 'error',
+        text: 'An error occurred. Please try again.',
       });
-      return;
     }
-    if (parseFloat(balance) > 1000) {
-      alerts.fire({
-        icon: "warning",
-        text: "Maximum deposit is $1000",
-      });
-      return;
-    }
-    alerts.showLoading();
-
-    const res = await axios.post(
-      "/api/transactions",
-      { amount: balance, currency },
-      { headers: { token: window.localStorage.getItem("token") } }
-    );
-
-    alerts.close();
-
-    if (res.data.error) {
-      alerts.fire({ icon: "warning", text: res.data.error });
-      return;
-    }
-
-    getUser();
-  }
+  };
 
   async function handleRedeem(e) {
     e.preventDefault();
@@ -222,431 +229,216 @@ export default function Deposit() {
           <Head>
             <title>CHECKERCC | Wallet</title>
           </Head>
-          <div className="root" id="#rootpage">
+          <div className="root" id="#rootpage" style={{ width: '80%' }}>
             <Header user={user} />
 
-            <h2>
-              <span>
-                {" "}
-                <FontAwesomeIcon icon={faWallet} /> WALLET{" "}
-              </span>
-            </h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "5px",
-                width: "100% !important",
-                flex: "1",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  marginBottom: "10px",
-                  flexDirection: "column",
-                }}
-              >
-                <small>Account</small>
-                <span>{user.login}</span>
-              </div>{" "}
-              <div
-                style={{
-                  background: "#222",
-                  height: "100%",
-                  border: "1px solid #222",
-                  width: "1px",
-                  margin: "0 20px",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  marginBottom: "10px",
-                  flexDirection: "column",
-                }}
-              >
-                <small>Balance</small>
-                <span>${user?.balance.toFixed(2)} USD</span>
+            <div className="wallet-container" style={{ padding: '20px' }}>
+              <div className="balance-card" style={{
+                background: 'linear-gradient(135deg, #1a1a1a 0%, #222 100%)',
+                padding: '30px',
+                borderRadius: '15px',
+                marginBottom: '30px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+              }}>
+                <h2 style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px',
+                  color: '#00ff00',
+                  marginBottom: '20px'
+                }}>
+                  <FontAwesomeIcon icon={faWallet} />
+                  Your Balance
+                </h2>
+                <div style={{ 
+                  fontSize: '2.5em', 
+                  fontWeight: 'bold',
+                  color: '#fff'
+                }}>
+                  ${user.balance.toFixed(2)}
+                </div>
               </div>
-            </div>
-            <div
-              style={{
-                background: "#222",
-                height: "1px",
-                marginBottom: "25px",
-              }}
-            ></div>
-            {parseFloat(user.order.amount) >= 5 && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  alignItems: "center",
-                  marginBottom: "30px",
-                }}
-              >
-                <h3 style={{ lineHeight: 0 }}>Pending deposit!</h3>
-                <span style={{ opacity: 0.7 }}>
-                  Total: {user.order.amount.toFixed(2)} USD
-                </span>
 
-                <span
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
-                  <Image
-                    src={`https://coinicons-api.vercel.app/api/icon/${user.order.currency.toLowerCase()}`}
-                    width={30}
-                    height={30}
-                  />{" "}
-                  {user.order.currency}
-                </span>
-
-                <QRCode
-                  value={user.order.address}
-                  size={128}
-                  style={{ border: "2px solid #fff" }}
-                />
-
-                <CopyToClipboard
-                  text={user.order.address}
-                  onCopy={() =>
-                    alerts.fire({
-                      icon: "success",
-                      text: "Copied to clipboard!",
-                      timer: 500,
-                    })
-                  }
-                >
-                  <small
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "16px",
-                      width: "100% !important",
-                      cursor: "pointer",
-                      letterSpacing: "1.5px",
-                      padding: "2px 3px",
-                      background: "rgba(0,0,0,0.45)",
-                      border: "1px solid #222",
-                      borderRadius: "5px",
-                      wordBreak: "break-all",
-                      msWordBreak: "break-all",
-                      maxWidth: "50%",
-                      color: "#999",
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faCopy} /> {user.order.address}
-                  </small>
-                </CopyToClipboard>
-                <span>Amount:</span>
-                <CopyToClipboard
-                  text={user.order.pricing}
-                  onCopy={() =>
-                    alerts.fire({
-                      icon: "success",
-                      text: "Copied to clipboard!",
-                      timer: 500,
-                    })
-                  }
-                >
-                  <small
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "16px",
-                      width: "100% !important",
-                      cursor: "pointer",
-                      letterSpacing: "1.5px",
-                      padding: "2px 3px",
-                      background: "rgba(0,0,0,0.45)",
-                      border: "1px solid #222",
-                      borderRadius: "5px",
-                      wordBreak: "break-all",
-                      msWordBreak: "break-all",
-                      maxWidth: "50%",
-                      color: "#999",
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faCopy} /> {user.order.pricing} BTC
-                  </small>
-                </CopyToClipboard>
-                <button onClick={handleSync} style={{ marginTop: "10px" }}>
-                  <FontAwesomeIcon icon={faRefresh} /> Sync
-                </button>
-                <button
-                  onClick={handleCancel}
-                  style={{
-                    background: "#111",
-                    fontSize: "16px",
-                    opacity: 0.5,
-                  }}
-                >
-                  <FontAwesomeIcon icon={faArrowLeft} /> Cancel
-                </button>
-              </div>
-            )}
-            <form className="recharge" onSubmit={handleSubmit}>
-              {parseFloat(user.order.amount) < 5 && (
-                <>
-                  <div
-                    style={{
-                      marginBottom: 0,
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        display: "flex",
-                        marginBottom: "5px",
-                        lineHeight: "0px",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: "10px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      <span>{t("addfunds")}</span>
-                    </h3>
-                  </div>
-
-                  <label htmlFor="" style={{ marginBottom: "2px" }}>
-                    Amount:
-                  </label>
-                  <CurrencyInput
-                    style={{ marginTop: 0 }}
-                    defaultValue={balance}
-                    allowNegativeValue={false}
-                    inputMode="numeric"
-                    prefix={""}
-                    suffix={" USD"}
-                    onValueChange={(e) => setBalance(e)}
-                  />
-
-                  <label htmlFor="" style={{ marginBottom: "2px" }}>
-                    Currency:
-                  </label>
-                  <select
-                    onChange={(e) => setCurrency(e.target.value)}
-                    style={{
-                      padding: "5px",
-                      fontSize: "16px",
-                      background: "#000",
-                      borderRadius: "5px",
-                      border: "1px solid #333",
-                    }}
-                    className="input"
-                  >
-                    <option value={"BTC"}>Bitcoin (BTC)</option>
-                    <option value={"ETH"}>Ethereum (ETH)</option>
-                    <option value={"LTC"}>Litecoin (LTC)</option>
-                    <option value={"DOGE"}>Dogecoin (DOGE)</option>
-                  </select>
-                  <button
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: isNaN(balance) ? "#222" : false,
-                    }}
-                    disabled={isNaN(balance)}
-                  >
-                    {isNaN(balance)
-                      ? "Invalid value"
-                      : `Add ${parseFloat(balance).toFixed(2)} USD`}
-                    {/* <small style={{ fontSize: "15px", marginLeft: "5px" }}>
-                      ({btcBalance} BTC)
-                    </small> */}
-                  </button>
-                  <div
-                    className="payment-methods"
-                    style={{
-                      opacity: 0.8,
-                    }}
-                  >
-                    <div className="crypto-icons">
-                      <img
-                        src="https://cryptologos.cc/logos/bitcoin-btc-logo.png"
-                        alt="BTC"
-                      />
-                      <img
-                        src="https://cryptologos.cc/logos/ethereum-usdt-logo.png"
-                        alt="USDT"
-                      />{" "}
-                      <img
-                        src="https://cryptologos.cc/logos/tether-tether-logo.png"
-                        alt="TETHER"
-                      />{" "}
-                      <img
-                        src="https://cryptologos.cc/logos/litecoin-ltc-logo.png"
-                        alt="LTC"
-                      />{" "}
-                      <img
-                        src="https://static-00.iconduck.com/assets.00/dogecoin-cryptocurrency-icon-2048x2048-6zhekr7g.png"
-                        alt="DOGE"
-                      />{" "}
-                      <span>+</span>
-                    </div>
-                    <div
-                      className="addfunds-methods"
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "end",
-                      }}
-                    >
-                      <small
-                        onClick={() => {
-                          router.push("/dashboard/pix-deposits");
-                        }}
+              <div className="deposit-section" style={{
+                display: 'grid',
+                gridTemplateColumns: order ? '1fr 1fr' : '1fr',
+                gap: '30px',
+              }}>
+                <div className="deposit-form" style={{
+                  background: '#1a1a1a',
+                  padding: '30px',
+                  borderRadius: '15px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                }}>
+                  <h2 style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px',
+                    color: '#00ff00',
+                    marginBottom: '20px'
+                  }}>
+                    <FontAwesomeIcon icon={faBitcoinSign} />
+                    Deposit Funds
+                  </h2>
+                  <form onSubmit={handleDeposit}>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ 
+                        display: 'block', 
+                        marginBottom: '10px',
+                        color: '#888'
+                      }}>
+                        Amount (USD)
+                      </label>
+                      <input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="Enter amount"
                         style={{
-                          cursor: "pointer",
-                          letterSpacing: 1.2,
-                          padding: "4px",
-                          color: "#6b21a8",
-                          fontWeight: "bold",
-                          fontSize: "16px",
-                          borderRadius: "5px",
-                          display: "flex",
-                          flexDirection: "row",
-                          alignitems: "center",
-                          gap: "5px",
+                          width: '100%',
+                          padding: '12px',
+                          background: '#222',
+                          border: '1px solid #333',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '1.1em'
                         }}
-                      >
-                        <Image width={20} height={15} src="/pix.png" /> Pay with
-                        PIX (Brazil)
-                        <FontAwesomeIcon icon={faArrowRight} />
-                      </small>
+                        min="5"
+                        step="0.01"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      style={{
+                        width: '100%',
+                        padding: '15px',
+                        background: loading ? '#333' : 'linear-gradient(135deg, #00ff00 0%, #00cc00 100%)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: loading ? '#666' : '#000',
+                        fontSize: '1.1em',
+                        fontWeight: 'bold',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {loading ? 'Processing...' : 'Deposit Now'}
+                    </button>
+                  </form>
+                </div>
+
+                {order && (
+                  <div className="order-details" style={{
+                    background: '#1a1a1a',
+                    padding: '30px',
+                    borderRadius: '15px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                  }}>
+                    <h2 style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px',
+                      color: '#00ff00',
+                      marginBottom: '20px'
+                    }}>
+                      <FontAwesomeIcon icon={faMoneyBillTransfer} />
+                      Payment Details
+                    </h2>
+                    <div style={{ 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px'
+                    }}>
+                      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                        <QRCode
+                          value={order.address}
+                          size={200}
+                          style={{ background: '#fff', padding: '10px', borderRadius: '10px' }}
+                        />
+                      </div>
+                      <div style={{
+                        background: '#222',
+                        padding: '15px',
+                        borderRadius: '8px',
+                        wordBreak: 'break-all'
+                      }}>
+                        <div style={{ color: '#888', marginBottom: '5px' }}>Amount:</div>
+                        <div style={{ color: '#00ff00', fontSize: '1.2em' }}>
+                          {order.amount} {order.currency}
+                        </div>
+                      </div>
+                      <div style={{
+                        background: '#222',
+                        padding: '15px',
+                        borderRadius: '8px',
+                        wordBreak: 'break-all'
+                      }}>
+                        <div style={{ color: '#888', marginBottom: '5px' }}>Address:</div>
+                        <div style={{ color: '#fff' }}>{order.address}</div>
+                      </div>
                     </div>
                   </div>
-                </>
-              )}
-            </form>
-            <hr />
-            <div className="recharge-redeem">
-              <div
-                style={{
-                  marginBottom: 0,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    marginBottom: "5px",
-                    lineHeight: "0px",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: "10px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  <span>{t("redeem-title")}</span>
-                </h3>
+                )}
               </div>
-              <form onSubmit={handleRedeem}>
-                <label htmlFor="" style={{ marginBottom: "2px" }}>
-                  Code:
-                </label>
-                <input
-                  type="text"
-                  placeholder="ABC-123-456-789"
-                  name=""
-                  id=""
-                  onChange={(e) => setRedeemCode(e.target.value)}
-                />
-                <button>{t("redeem")}</button>
-              </form>
-            </div>
 
-            <br />
-            <hr />
-            <div className="recharge-history">
-              <div style={{ marginBottom: 0 }}>
-                <h3 style={{ fontWeight: "bold", margin: 0 }}>
-                  {t("transaction-history")}
-                </h3>
-                <small style={{ opacity: 0.5 }}>
-                  Click in log to see details
-                </small>
-              </div>
-              <br />
-              <div>
-                <div>
-                  <table
-                    style={{
-                      width: "100%",
-                      border: "1px solid #222 !important",
-                      borderRadius: "10px",
-                    }}
-                    id="customers"
-                  >
-                    <tr>
-                      <th>Log</th>
-                      <th>Amount</th>
-                    </tr>
-
-                    {user && (
-                      <>
-                        {user.logs.slice(0, logsNumber).map((log) => (
-                          <tr
-                            style={{ cursor: "pointer" }}
-                            key={log._id}
-                            onClick={() => {
-                              alerts.fire({
-                                title: log.history_type,
-                                text: log.data,
-                              });
-                            }}
-                          >
-                            <td>{log.history_type}</td>
-                            {log.cost === 0 ? (
-                              <td>
-                                <small
-                                  style={{
-                                    fontFamily: "monospace",
-                                    color: "#6b21a8",
-                                    letterSpacing: "4px",
-                                  }}
-                                >
-                                  FREE
-                                </small>
-                              </td>
-                            ) : (
-                              <td>
-                                {" "}
-                                $
-                                {parseFloat(parseFloat(log.cost) * -1).toFixed(
-                                  2
-                                )}{" "}
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </>
-                    )}
-                  </table>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      marginTop: "20px",
-                      flexDirection: "columns",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setLogsNumber(logsNumber + 5);
+              <div className="transaction-history" style={{
+                marginTop: '30px',
+                background: '#1a1a1a',
+                padding: '30px',
+                borderRadius: '15px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+              }}>
+                <h2 style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px',
+                  color: '#00ff00',
+                  marginBottom: '20px'
+                }}>
+                  <FontAwesomeIcon icon={faHistory} />
+                  Transaction History
+                </h2>
+                <div className="logs" style={{
+                  display: 'grid',
+                  gap: '10px'
+                }}>
+                  {user.logs.map((log, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        background: '#222',
+                        padding: '15px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                       }}
-                      style={{ fontSize: "12px", padding: "5px 10px" }}
                     >
-                      + {t("show-more")}
-                    </button>
-                  </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <FontAwesomeIcon 
+                          icon={log.cost > 0 ? faCoins : faCreditCard}
+                          style={{ color: log.cost > 0 ? '#00ff00' : '#ff4444' }}
+                        />
+                        <div>
+                          <div style={{ color: '#fff' }}>{log.history_type}</div>
+                          {log.data && (
+                            <div style={{ color: '#888', fontSize: '0.9em' }}>{log.data}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ 
+                        color: log.cost > 0 ? '#00ff00' : '#ff4444',
+                        fontWeight: 'bold'
+                      }}>
+                        ${Math.abs(log.cost).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
+
             <Footer />
           </div>
         </>
