@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faHome,
@@ -10,69 +9,84 @@ import {
   faChartLine,
   faRocket
 } from '@fortawesome/free-solid-svg-icons';
+import { useRouter } from 'next/router';
 import useTranslation from 'next-translate/useTranslation';
 
 export default function Header({ user }) {
+  const router = useRouter();
   const { t } = useTranslation('common');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.push('/');
+  };
+
+  const handleWalletClick = () => {
+    router.push('/dashboard/wallet');
+  };
 
   return (
     <header style={{
-      background: 'linear-gradient(135deg, #111 0%, #000 100%)',
+      background: '#111',
       padding: '20px',
       borderRadius: '15px',
-      marginBottom: '20px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+      marginBottom: '20px'
     }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <Link href="/dashboard">
-          <a style={{
+        <div 
+          onClick={() => router.push('/dashboard')}
+          style={{
             fontSize: '1.5em',
             fontWeight: 'bold',
             color: '#00ff00',
-            textDecoration: 'none',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '10px'
-          }}>
-            <FontAwesomeIcon icon={faRocket} />
-            SECCX<span style={{ color: '#fff' }}>.PRO</span>
-          </a>
-        </Link>
-
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '15px'
-        }}>
-          <div style={{
-            background: 'rgba(0,255,0,0.1)',
-            padding: '8px 15px',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <FontAwesomeIcon icon={faUserCircle} style={{ color: '#00ff00' }} />
-            <span style={{ color: '#fff' }}>{user.login}</span>
-          </div>
-          <div style={{
-            background: 'rgba(0,255,0,0.1)',
-            padding: '8px 15px',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer'
           }}
-          onClick={() => window.location.href = '/dashboard/wallet'}>
-            <FontAwesomeIcon icon={faChartLine} style={{ color: '#00ff00' }} />
-            <span style={{ color: '#fff' }}>${user.balance.toFixed(2)}</span>
-          </div>
+        >
+          <FontAwesomeIcon icon={faRocket} />
+          SECCX<span style={{ color: '#fff' }}>.PRO</span>
         </div>
+
+        {user && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px'
+          }}>
+            <div style={{
+              background: 'rgba(0,255,0,0.1)',
+              padding: '8px 15px',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <FontAwesomeIcon icon={faUserCircle} style={{ color: '#00ff00' }} />
+              <span style={{ color: '#fff' }}>{user.login}</span>
+            </div>
+            <div 
+              onClick={handleWalletClick}
+              style={{
+                background: 'rgba(0,255,0,0.1)',
+                padding: '8px 15px',
+                borderRadius: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              <FontAwesomeIcon icon={faChartLine} style={{ color: '#00ff00' }} />
+              <span style={{ color: '#fff' }}>${user.balance.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <nav style={{
@@ -82,34 +96,34 @@ export default function Header({ user }) {
         flexWrap: 'wrap'
       }}>
         {[
-          { href: '/dashboard', icon: faHome, label: t('home') },
-          { href: '/dashboard/wallet', icon: faWallet, label: t('wallet') },
-          { href: '/dashboard/shop', icon: faShoppingCart, label: t('shop') },
-          { href: '/dashboard/api', icon: faCode, label: 'API' }
-        ].map(({ href, icon, label }) => (
-          <Link key={href} href={href}>
-            <a style={{
+          { path: '/dashboard', icon: faHome, label: t('home') },
+          { path: '/dashboard/wallet', icon: faWallet, label: t('wallet') },
+          { path: '/dashboard/shop', icon: faShoppingCart, label: t('shop') },
+          { path: '/dashboard/api', icon: faCode, label: 'API' }
+        ].map(({ path, icon, label }) => (
+          <button
+            key={path}
+            onClick={() => router.push(path)}
+            style={{
               padding: '10px 20px',
-              background: window.location.pathname === href ? 'rgba(0,255,0,0.1)' : '#1a1a1a',
+              background: router.pathname === path ? 'rgba(0,255,0,0.1)' : '#1a1a1a',
+              border: 'none',
               borderRadius: '8px',
               color: '#fff',
-              textDecoration: 'none',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              transition: 'all 0.3s ease',
               fontSize: '14px'
-            }}>
-              <FontAwesomeIcon icon={icon} style={{ color: '#00ff00' }} />
-              {label}
-            </a>
-          </Link>
+            }}
+          >
+            <FontAwesomeIcon icon={icon} style={{ color: '#00ff00' }} />
+            {label}
+          </button>
         ))}
+
         <button
-          onClick={() => {
-            window.localStorage.removeItem('token');
-            window.location.href = '/';
-          }}
+          onClick={handleLogout}
           style={{
             padding: '10px 20px',
             background: 'rgba(255,0,0,0.1)',
