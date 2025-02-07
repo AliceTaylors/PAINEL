@@ -23,10 +23,9 @@ import Head from 'next/head';
 import Header from '../../components/Header';
 import AccountDetails from '../../components/AccountDetails';
 import Footer from '../../components/Footer';
-import { checkToken } from '../../services/jwt';
-import User from '../../models/User';
 import crypto from 'crypto';
 
+// Frontend component
 export default function Api() {
   const alerts = withReactContent(Swal);
   const [token, setToken] = useState(null);
@@ -82,6 +81,17 @@ export default function Api() {
             <small>Integrate our tools to your app or service.</small>
           </div>
           <div className="api-docs">
+            <div style={{marginBottom: '20px'}}>
+              <h3>External API Access</h3>
+              <code>
+                GET https://{window.location.hostname}/api/external-check?user=USERNAME&password=PASS&checker=TYPE&lista=CC|MM|YYYY|CVV
+              </code>
+              <br/>
+              <small>
+                checker types: adyen, premium
+              </small>
+            </div>
+
             <form action="" onSubmit={handleRequest}>
               <span className="endpoint">
                 <FontAwesomeIcon icon={faAdd} /> POST /checks
@@ -180,143 +190,4 @@ export default function Api() {
       )}
     </>
   );
-}
-
-export async function handler(req, res) {
-  // Allow CORS for external access
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-  
-  if (req.method === 'GET') {
-    const { user, password, checker, lista } = req.query;
-
-    if (!user || !password || !checker || !lista) {
-      return res.json({
-        status: "error",
-        msg: "Missing parameters"
-      });
-    }
-
-    // Authenticate user
-    const dbUser = await User.findOne({ login: user, password });
-    if (!dbUser) {
-      return res.json({
-        status: "error", 
-        msg: "Invalid credentials"
-      });
-    }
-
-    // Format card data
-    const [cc, month, year, cvv] = lista.split('|');
-    if (!cc || !month || !year || !cvv) {
-      return res.json({
-        status: "error",
-        msg: "Invalid card format. Use: CC|MM|YYYY|CVV"
-      });
-    }
-
-    // Check minimum balance based on checker type
-    const minBalance = checker === 'premium' ? 0.1 : 0.5;
-    if (dbUser.balance < minBalance) {
-      return res.json({
-        status: "error",
-        msg: "Insufficient funds"
-      });
-    }
-
-    try {
-      let API_URL;
-      let liveCost;
-      let dieCost;
-
-      // Set API URL and costs based on checker type
-      if (checker === 'premium') {
-        API_URL = process.env.API_2_URL;
-        liveCost = -1.0;
-        dieCost = -0.1;
-      } else if (checker === 'adyen') {
-        API_URL = process.env.API_1_URL;
-        liveCost = -0.2;
-        dieCost = 0;
-      } else {
-        return res.json({
-          status: "error",
-          msg: "Invalid checker type"
-        });
-      }
-
-      // Call checker API
-      const API_RESULT = await axios.get(API_URL + lista);
-
-      if (API_RESULT.data.error) {
-        // Handle die result
-        await dbUser.updateOne({
-          logs: [
-            {
-              history_type: `${checker.toUpperCase()} DIE`,
-              cost: dieCost,
-              data: lista,
-            },
-            ...dbUser.logs,
-          ],
-          $inc: {
-            balance: dieCost,
-          },
-        });
-
-        return res.json({
-          status: "error",
-          msg: API_RESULT.data.retorno,
-          balance: (dbUser.balance + dieCost).toFixed(2)
-        });
-      }
-
-      if (API_RESULT.data.success) {
-        // Check balance for live cost
-        if (dbUser.balance < Math.abs(liveCost)) {
-          return res.json({
-            status: "error",
-            msg: "Insufficient funds for live check"
-          });
-        }
-
-        // Handle live result
-        await dbUser.updateOne({
-          logs: [
-            {
-              history_type: `${checker.toUpperCase()} LIVE`,
-              cost: liveCost,
-              data: lista,
-            },
-            ...dbUser.logs,
-          ],
-          $inc: {
-            balance: liveCost,
-          },
-        });
-
-        return res.json({
-          status: "approved",
-          msg: API_RESULT.data.retorno,
-          balance: (dbUser.balance + liveCost).toFixed(2)
-        });
-      }
-
-      return res.json({
-        status: "error",
-        msg: "Unknown response from checker"
-      });
-
-    } catch (error) {
-      return res.json({
-        status: "error",
-        msg: "Internal server error"
-      });
-    }
-  }
-
-  // Keep existing POST endpoint for web interface
-  if (req.method === 'POST') {
-    // ... existing POST handler code ...
-  }
 }
