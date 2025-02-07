@@ -23,18 +23,16 @@ import {
   faCreditCard,
   faCoins,
   faQrcode,
-  faGift
+  faGift,
+  faCoins as faBinance,
+  faDollarSign as faUsdt,
+  faMoneyBill as faLtc,
+  faQrcode as faPix
 } from "@fortawesome/free-solid-svg-icons";
 import CurrencyInput from "react-currency-input-field";
 import Footer from "../../components/Footer";
 import useTranslation from "next-translate/useTranslation";
 import QRCode from "react-qr-code";
-import {
-  SiBinance,
-  SiLitecoin,
-  SiTether,
-  SiPix
-} from "react-icons/si";
 
 const modalStyles = {
   overlay: {
@@ -89,25 +87,25 @@ export default function Wallet() {
     },
     BNB: {
       name: "Binance Coin",
-      icon: SiBinance,
+      icon: faBinance,
       color: "#F3BA2F",
       min: 5
     },
     LTC: {
       name: "Litecoin", 
-      icon: SiLitecoin,
+      icon: faLtc,
       color: "#345d9d",
       min: 5
     },
     USDT: {
       name: "Tether",
-      icon: SiTether, 
+      icon: faUsdt, 
       color: "#26A17B",
       min: 5
     },
     PIX: {
       name: "PIX",
-      icon: SiPix,
+      icon: faPix,
       color: "#32BCAD",
       min: 5
     }
