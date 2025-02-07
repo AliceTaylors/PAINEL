@@ -1,7 +1,7 @@
 export const API_ROUTES = {
   CHECK: '/api/check',
   USER: '/api/user',
-  AFFILIATE: '/api/affiliate',
+  AFFILIATE: '/api/affiliate/stats',
   CRYPTO: '/api/crypto',
   PIX: '/api/pix-deposits'
 };
