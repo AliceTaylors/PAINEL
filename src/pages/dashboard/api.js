@@ -1,71 +1,91 @@
 import { useEffect, useState } from 'react';
-import withReactContent from 'sweetalert2-react-content';
-import Swal from 'sweetalert2';
-import axios from 'axios';
-import { useRouter } from 'next/router';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faRocket,
-  faTrash,
-  faCreditCard,
-  faBitcoinSign,
-  faCartShopping,
-  faKey,
-  faDatabase,
-  faCartPlus,
-  faPersonCircleCheck,
-  faFire,
-  faAdd,
-  faMessage,
-} from '@fortawesome/free-solid-svg-icons';
 import Head from 'next/head';
 import Header from '../../components/Header';
-import AccountDetails from '../../components/AccountDetails';
 import Footer from '../../components/Footer';
-import crypto from 'crypto';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCode,
+  faCheckCircle,
+  faTimesCircle,
+  faInfoCircle,
+  faServer,
+  faCreditCard,
+  faLock,
+  faRocket
+} from '@fortawesome/free-solid-svg-icons';
 
-// Frontend component
 export default function Api() {
-  const alerts = withReactContent(Swal);
-  const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
-  const router = useRouter();
-  const [cc, setCc] = useState(null);
-  const [requestResponse, setRequestResponse] = useState(null);
-  const [requestBody, setRequestBody] = useState(null);
-  const [hasSent, setSent] = useState(false);
-
-  const getUser = async () => {
-    setToken(window.localStorage.getItem('token'));
-    const res = await axios.get('/api/sessions', {
-      headers: { token: window.localStorage.getItem('token') },
-    });
-
-    if (res.data.error) {
-      router.push('/');
-    }
-
-    setUser(res.data.user);
-  };
-
-  const handleRequest = async (e) => {
-    setRequestBody(JSON.stringify({ cc }, null, 4));
-    e.preventDefault();
-    const res = await axios.post(
-      '/api/checks',
-      { cc },
-      { headers: { token: window.localStorage.getItem('token') } }
-    );
-
-    const data = res.data;
-
-    setRequestResponse(data);
-  };
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedChecker, setSelectedChecker] = useState('adyen');
 
   useEffect(() => {
+    const getUser = async () => {
+      const res = await fetch('/api/sessions', {
+        headers: { token: localStorage.getItem('token') },
+      });
+      const data = await res.json();
+      if (!data.error) setUser(data.user);
+    };
     getUser();
   }, []);
+
+  const checkerDetails = {
+    adyen: {
+      name: 'Adyen Checker',
+      description: 'High performance checker for Fullz & Gens',
+      pricing: {
+        live: '$0.20',
+        die: 'FREE'
+      },
+      maxDies: '40 consecutive dies = 24h block',
+      example: '407843011649XXXX|07|2028|845',
+      responses: {
+        live: {
+          status: 'live',
+          msg: '#LIVE - Card Approved',
+          balance: '49.80'
+        },
+        die: {
+          status: 'die',
+          msg: '#DIE - Card Declined',
+          balance: '50.00'
+        },
+        error: {
+          status: 'error',
+          msg: 'Insufficient funds',
+          balance: '0.00'
+        }
+      }
+    },
+    premium: {
+      name: 'Premium Checker',
+      description: 'Premium gateway with high approval rate',
+      pricing: {
+        live: '$1.00',
+        die: '$0.10'
+      },
+      maxDies: '20 consecutive dies = 24h block',
+      example: '407843011649XXXX|07|2028|845',
+      responses: {
+        live: {
+          status: 'live',
+          msg: '#APPROVED - Premium Check',
+          balance: '49.00'
+        },
+        die: {
+          status: 'die',
+          msg: '#DECLINED - Premium Check',
+          balance: '49.90'
+        },
+        error: {
+          status: 'error',
+          msg: 'Account blocked for 24h',
+          balance: '49.90'
+        }
+      }
+    }
+  };
 
   return (
     <>
@@ -76,118 +96,177 @@ export default function Api() {
         <div className="root" style={{ width: '80%' }}>
           <Header user={user} />
 
-          <div>
-            <h2 style={{ marginBottom: 0 }}>API Documentation</h2>
-            <small>Integrate our tools to your app or service.</small>
-          </div>
-          <div className="api-docs">
-            <div style={{marginBottom: '20px'}}>
-              <h3>External API Access</h3>
-              <code>
-                GET https://{window.location.hostname}/api/external-check?user=USERNAME&password=PASS&checker=TYPE&lista=CC|MM|YYYY|CVV
-              </code>
-              <br/>
-              <small>
-                checker types: adyen, premium
-              </small>
+          <div className="api-docs" style={{ padding: '20px', background: '#111', borderRadius: '10px', marginTop: '20px' }}>
+            <div className="api-header" style={{ marginBottom: '30px', borderBottom: '2px solid #222', paddingBottom: '20px' }}>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FontAwesomeIcon icon={faCode} style={{ color: '#00ff00' }} />
+                API Documentation
+              </h1>
+              <p style={{ color: '#888', fontSize: '1.1em' }}>Integrate our powerful checking tools into your application</p>
             </div>
 
-            <form action="" onSubmit={handleRequest}>
-              <span className="endpoint">
-                <FontAwesomeIcon icon={faAdd} /> POST /checks
-              </span>
-              <small></small>
-
-              <span>
-                URL:{' '}
-                <CopyToClipboard
-                  text={window.location.hostname + '/api/checks'}
-                  onCopy={() =>
-                    alerts.fire({
-                      icon: 'success',
-                      text: 'Copied to clipboard!',
-                      timer: 500,
-                    })
-                  }
+            <div className="api-tabs" style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
+              {['overview', 'authentication', 'checkers', 'responses'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    background: activeTab === tab ? '#222' : 'transparent',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '5px',
+                    color: activeTab === tab ? '#00ff00' : '#fff',
+                    cursor: 'pointer',
+                    fontSize: '1.1em'
+                  }}
                 >
-                  <button
-                    type="button"
-                    style={{
-                      padding: '2px',
-                      fontSize: '10px',
-                      marginBottom: '5px',
-                    }}
-                  >
-                    Copy
-                  </button>
-                </CopyToClipboard>
-              </span>
-              <input
-                type="text"
-                disabled
-                value={'https://' + window.location.hostname + '/api/checks'}
-              />
+                  <FontAwesomeIcon icon={
+                    tab === 'overview' ? faInfoCircle :
+                    tab === 'authentication' ? faLock :
+                    tab === 'checkers' ? faCreditCard :
+                    faServer
+                  } style={{ marginRight: '8px' }} />
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
 
-              <br />
-
-              <span>
-                {'Token:'}{' '}
-                <CopyToClipboard
-                  text={token}
-                  onCopy={() =>
-                    alerts.fire({
-                      icon: 'success',
-                      text: 'Copied to clipboard!',
-                      timer: 500,
-                    })
-                  }
-                >
-                  <button
-                    style={{
-                      padding: '2px',
-                      fontSize: '10px',
-                      marginBottom: '5px',
-                    }}
-                  >
-                    Copy
-                  </button>
-                </CopyToClipboard>
-              </span>
-              <input type="text" disabled value={token} />
-
-              <br />
-
-              <span>{'CC: '} </span>
-
-              <input
-                style={{ opacity: 1, color: '#fff' }}
-                type="text"
-                onChange={(e) => setCc(e.target.value)}
-                placeholder="Ex: 5000000000000000|00|0000|000"
-              />
-              <button type="submit" onClick={() => setSent(true)}>
-                Send request
-              </button>
-            </form>
-          </div>
-
-          <br />
-          {hasSent && (
-            <>
-              <h3>Request body</h3>
-              <div className="request-response">{requestBody}</div>
-
-              <br />
-              <h3>Request response</h3>
-              <div className="request-response">
-                <pre>{JSON.stringify(requestResponse, null, 4)}</pre>
+            {activeTab === 'overview' && (
+              <div className="api-section">
+                <h2><FontAwesomeIcon icon={faRocket} style={{ marginRight: '10px', color: '#00ff00' }} />Quick Start</h2>
+                <div className="endpoint-box" style={{ background: '#0a0a0a', padding: '20px', borderRadius: '8px', marginTop: '20px' }}>
+                  <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>Base URL</h3>
+                  <code style={{ background: '#1a1a1a', padding: '15px', borderRadius: '5px', display: 'block' }}>
+                    GET https://painel-seccx.vercel.app/api/external-check
+                  </code>
+                </div>
               </div>
-            </>
-          )}
+            )}
+
+            {activeTab === 'authentication' && (
+              <div className="api-section">
+                <h2><FontAwesomeIcon icon={faLock} style={{ marginRight: '10px', color: '#00ff00' }} />Authentication</h2>
+                <div style={{ background: '#0a0a0a', padding: '20px', borderRadius: '8px', marginTop: '20px' }}>
+                  <h3>Required Parameters</h3>
+                  <ul style={{ listStyle: 'none', padding: 0 }}>
+                    <li style={{ margin: '10px 0', padding: '10px', background: '#1a1a1a', borderRadius: '5px' }}>
+                      <code>user</code> - Your username
+                    </li>
+                    <li style={{ margin: '10px 0', padding: '10px', background: '#1a1a1a', borderRadius: '5px' }}>
+                      <code>password</code> - Your password
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'checkers' && (
+              <div className="api-section">
+                <div style={{ marginBottom: '20px' }}>
+                  <button
+                    onClick={() => setSelectedChecker('adyen')}
+                    style={{
+                      background: selectedChecker === 'adyen' ? '#00ff00' : '#222',
+                      color: selectedChecker === 'adyen' ? '#000' : '#fff',
+                      border: 'none',
+                      padding: '10px 20px',
+                      marginRight: '10px',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Adyen
+                  </button>
+                  <button
+                    onClick={() => setSelectedChecker('premium')}
+                    style={{
+                      background: selectedChecker === 'premium' ? '#00ff00' : '#222',
+                      color: selectedChecker === 'premium' ? '#000' : '#fff',
+                      border: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Premium
+                  </button>
+                </div>
+
+                <div style={{ background: '#0a0a0a', padding: '20px', borderRadius: '8px' }}>
+                  <h2 style={{ color: '#00ff00', marginBottom: '20px' }}>{checkerDetails[selectedChecker].name}</h2>
+                  <p style={{ color: '#888', marginBottom: '20px' }}>{checkerDetails[selectedChecker].description}</p>
+                  
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ color: '#fff', marginBottom: '10px' }}>Pricing</h3>
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                      <div style={{ background: '#1a1a1a', padding: '10px', borderRadius: '5px' }}>
+                        <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#00ff00', marginRight: '5px' }} />
+                        Live: {checkerDetails[selectedChecker].pricing.live}
+                      </div>
+                      <div style={{ background: '#1a1a1a', padding: '10px', borderRadius: '5px' }}>
+                        <FontAwesomeIcon icon={faTimesCircle} style={{ color: '#ff4444', marginRight: '5px' }} />
+                        Die: {checkerDetails[selectedChecker].pricing.die}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ color: '#fff', marginBottom: '10px' }}>Usage Limit</h3>
+                    <div style={{ background: '#1a1a1a', padding: '10px', borderRadius: '5px' }}>
+                      {checkerDetails[selectedChecker].maxDies}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 style={{ color: '#fff', marginBottom: '10px' }}>Example Request</h3>
+                    <code style={{ background: '#1a1a1a', padding: '15px', borderRadius: '5px', display: 'block', overflowX: 'auto' }}>
+                      GET /api/external-check?user=USERNAME&password=PASS&checker={selectedChecker}&lista={checkerDetails[selectedChecker].example}
+                    </code>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'responses' && (
+              <div className="api-section">
+                <h2><FontAwesomeIcon icon={faServer} style={{ marginRight: '10px', color: '#00ff00' }} />Response Examples</h2>
+                <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
+                  {Object.entries(checkerDetails[selectedChecker].responses).map(([type, response]) => (
+                    <div key={type} style={{ background: '#0a0a0a', padding: '20px', borderRadius: '8px' }}>
+                      <h3 style={{ 
+                        color: type === 'live' ? '#00ff00' : type === 'die' ? '#ff4444' : '#ffaa00',
+                        marginBottom: '10px'
+                      }}>
+                        {type.toUpperCase()} Response
+                      </h3>
+                      <pre style={{ background: '#1a1a1a', padding: '15px', borderRadius: '5px', overflowX: 'auto' }}>
+                        {JSON.stringify(response, null, 2)}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <Footer />
         </div>
       )}
+      <style jsx>{`
+        .api-docs {
+          font-family: 'Inter', sans-serif;
+        }
+        code {
+          font-family: 'Fira Code', monospace;
+        }
+        .api-section {
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </>
   );
 }
