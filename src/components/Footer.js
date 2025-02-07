@@ -1,93 +1,48 @@
+import { faMessage, faRocket } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRocket, faShieldAlt, faClock } from '@fortawesome/free-solid-svg-icons';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer style={{
-      marginTop: '40px',
+    <div style={{ 
+      marginTop: '70px', 
+      marginBottom: '20px',
+      background: 'linear-gradient(135deg, #111 0%, #000 100%)',
       padding: '30px',
-      background: 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(17,17,17,0.95) 100%)',
-      backdropFilter: 'blur(10px)',
       borderRadius: '15px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-      border: '1px solid rgba(255,255,255,0.05)'
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
     }}>
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '30px',
-        marginBottom: '30px'
-      }}>
-        <div>
-          <h3 style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#00ff00',
-            marginBottom: '15px'
-          }}>
-            <FontAwesomeIcon icon={faRocket} />
-            SECCX.PRO
-          </h3>
-          <p style={{ color: '#888', lineHeight: '1.6' }}>
-            Premium card checking service with high approval rates and reliable results.
-          </p>
-        </div>
-
-        <div>
-          <h3 style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#00ff00',
-            marginBottom: '15px'
-          }}>
-            <FontAwesomeIcon icon={faShieldAlt} />
-            Security
-          </h3>
-          <p style={{ color: '#888', lineHeight: '1.6' }}>
-            Advanced encryption and secure payment processing for your safety.
-          </p>
-        </div>
-
-        <div>
-          <h3 style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#00ff00',
-            marginBottom: '15px'
-          }}>
-            <FontAwesomeIcon icon={faClock} />
-            24/7 Support
-          </h3>
-          <p style={{ color: '#888', lineHeight: '1.6' }}>
-            Our team is always available to help you with any questions.
-          </p>
-        </div>
-      </div>
-
-      <div style={{
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        paddingTop: '20px',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '10px'
+        justifyContent: 'center',
+        marginBottom: '20px'
       }}>
-        <div style={{ color: '#666' }}>
-          © {new Date().getFullYear()} SECCX.PRO - All rights reserved
-        </div>
-        <div style={{
-          display: 'flex',
-          gap: '20px'
-        }}>
-          <a href="#" style={{ color: '#666', textDecoration: 'none' }}>Terms</a>
-          <a href="#" style={{ color: '#666', textDecoration: 'none' }}>Privacy</a>
-          <a href="#" style={{ color: '#666', textDecoration: 'none' }}>Support</a>
-        </div>
+        <Link href="https://t.me/CHECKERCC">
+          <button style={{ 
+            padding: '12px 24px',
+            fontSize: '14px',
+            background: 'rgba(0,255,0,0.1)',
+            border: 'none',
+            borderRadius: '8px',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <FontAwesomeIcon icon={faMessage} style={{ color: '#00ff00' }} />
+            Join Telegram Chat
+          </button>
+        </Link>
       </div>
-    </footer>
+      <div style={{ 
+        fontSize: '15px', 
+        textAlign: 'center',
+        color: '#666'
+      }}>
+        <FontAwesomeIcon icon={faRocket} style={{ color: '#00ff00', marginRight: '8px' }} />
+        SECCX.PRO © {new Date().getFullYear()}
+      </div>
+    </div>
   );
 }
