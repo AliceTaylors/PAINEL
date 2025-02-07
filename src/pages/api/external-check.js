@@ -1,7 +1,32 @@
-import dbConnect from '../../lib/dbConnect';
-import User from '../../models/user';
+import mongoose from 'mongoose';
 import axios from 'axios';
 import crypto from 'crypto';
+
+// Conexão MongoDB
+const dbConnect = async () => {
+  if (mongoose.connections[0].readyState) return;
+  await mongoose.connect(process.env.MONGODB_URI);
+};
+
+// Modelo User
+const userSchema = new mongoose.Schema({
+  login: String,
+  password: String,
+  balance: Number,
+  logs: Array,
+  mail: String,
+  ipAddress: String,
+  order: {
+    amount: Number,
+    complete: Boolean,
+    currency: String,
+    address: String,
+    pricing: String,
+    externalId: String,
+  }
+});
+
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Helper function to check consecutive dies
 function getConsecutiveDies(logs, checkerType) {
