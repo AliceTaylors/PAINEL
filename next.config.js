@@ -21,14 +21,6 @@ module.exports = nextTranslate({
       {
         source: '/api/check/:id',
         destination: '/api/check/[id]'
-      },
-      {
-        source: '/api/user/:id',
-        destination: '/api/user/[id]'
-      },
-      {
-        source: '/api/affiliate/stats/:id',
-        destination: '/api/affiliate/stats/[id]'
       }
     ];
   }
