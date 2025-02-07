@@ -1,5 +1,5 @@
-import dbConnect from '../utils/dbConnect';
-import User from '../models/User';
+import dbConnect from '../../utils/dbConnect';
+import User from '../../models/User';
 import axios from 'axios';
 import crypto from 'crypto';
 
@@ -29,22 +29,22 @@ function isUserBlocked(user, checkerType) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  await dbConnect();
-
-  const { user, password, checker, lista } = req.query;
-
-  if (!user || !password || !checker || !lista) {
-    return res.json({
-      status: "error",
-      msg: "Missing parameters"
-    });
-  }
-
   try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    await dbConnect();
+
+    const { user, password, checker, lista } = req.query;
+
+    if (!user || !password || !checker || !lista) {
+      return res.json({
+        status: "error",
+        msg: "Missing parameters"
+      });
+    }
+
     // Authenticate user
     const dbUser = await User.findOne({ login: user, password });
     if (!dbUser) {
@@ -71,68 +71,68 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check minimum balance based on checker type
-    const minBalance = checker === 'premium' ? 0.1 : 0.5;
-    if (dbUser.balance < minBalance) {
-      return res.json({
-        status: "error",
-        msg: "Insufficient funds"
-      });
-    }
+    // Configurações específicas do checker
+    const checkerConfig = {
+      premium: {
+        apiUrl: process.env.API_2_URL,
+        liveCost: -1.0,
+        dieCost: -0.1,
+        minBalance: 0.1,
+        maxDies: 20
+      },
+      adyen: {
+        apiUrl: process.env.API_1_URL,
+        liveCost: -0.2,
+        dieCost: 0,
+        minBalance: 0.5,
+        maxDies: 40
+      }
+    };
 
-    let API_URL;
-    let liveCost;
-    let dieCost;
-    let maxConsecutiveDies;
-
-    // Set API URL and costs based on checker type
-    if (checker === 'premium') {
-      API_URL = process.env.API_2_URL;
-      liveCost = -1.0;
-      dieCost = -0.1;
-      maxConsecutiveDies = 20;
-    } else if (checker === 'adyen') {
-      API_URL = process.env.API_1_URL;
-      liveCost = -0.2;
-      dieCost = 0;
-      maxConsecutiveDies = 40;
-    } else {
+    const config = checkerConfig[checker];
+    if (!config) {
       return res.json({
         status: "error",
         msg: "Invalid checker type"
       });
     }
 
-    // Call checker API
-    const API_RESULT = await axios.get(API_URL + lista);
+    // Check minimum balance
+    if (dbUser.balance < Math.abs(config.minBalance)) {
+      return res.json({
+        status: "error",
+        msg: "Insufficient funds"
+      });
+    }
 
+    // Make API request
+    const API_RESULT = await axios.get(config.apiUrl + lista);
+
+    // Handle API error
     if (API_RESULT.data.error) {
-      // Handle die result
-      const consecutiveDies = getConsecutiveDies(dbUser.logs, checker) + 1;
+      const consecutiveDies = getConsecutiveDies(dbUser.logs, checker);
       
       // Check if user should be blocked
-      if (consecutiveDies >= maxConsecutiveDies) {
-        const blockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+      if (consecutiveDies >= config.maxDies) {
+        const blockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
         
         await dbUser.updateOne({
           logs: [
             {
               history_type: `${checker.toUpperCase()} DIE`,
-              cost: dieCost,
+              cost: config.dieCost,
               data: lista,
             },
             ...dbUser.logs,
           ],
-          $inc: {
-            balance: dieCost,
-          },
+          $inc: { balance: config.dieCost },
           [`${checker}_block_until`]: blockUntil
         });
 
         return res.json({
           status: "error",
-          msg: `Account blocked from ${checker} checker for 24 hours due to ${maxConsecutiveDies} consecutive dies`,
-          balance: (dbUser.balance + dieCost).toFixed(2)
+          msg: `Account blocked from ${checker} checker for 24 hours due to ${config.maxDies} consecutive dies`,
+          balance: (dbUser.balance + config.dieCost).toFixed(2)
         });
       }
 
@@ -140,55 +140,47 @@ export default async function handler(req, res) {
         logs: [
           {
             history_type: `${checker.toUpperCase()} DIE`,
-            cost: dieCost,
+            cost: config.dieCost,
             data: lista,
           },
           ...dbUser.logs,
         ],
-        $inc: {
-          balance: dieCost,
-        },
+        $inc: { balance: config.dieCost }
       });
 
       return res.json({
         status: "die",
         msg: API_RESULT.data.retorno,
-        balance: (dbUser.balance + dieCost).toFixed(2)
+        balance: (dbUser.balance + config.dieCost).toFixed(2)
       });
     }
 
+    // Handle successful check
     if (API_RESULT.data.success) {
-      // Check balance for live cost
-      if (dbUser.balance < Math.abs(liveCost)) {
+      if (dbUser.balance < Math.abs(config.liveCost)) {
         return res.json({
           status: "error",
           msg: "Insufficient funds for live check"
         });
       }
 
-      // Handle live result
       await dbUser.updateOne({
         logs: [
           {
             history_type: `${checker.toUpperCase()} LIVE`,
-            cost: liveCost,
+            cost: config.liveCost,
             data: lista,
           },
           ...dbUser.logs,
         ],
-        $inc: {
-          balance: liveCost,
-        },
-        // Reset block if it exists
-        $unset: {
-          [`${checker}_block_until`]: ""
-        }
+        $inc: { balance: config.liveCost },
+        $unset: { [`${checker}_block_until`]: "" }
       });
 
       return res.json({
         status: "live",
         msg: API_RESULT.data.retorno,
-        balance: (dbUser.balance + liveCost).toFixed(2)
+        balance: (dbUser.balance + config.liveCost).toFixed(2)
       });
     }
 
