@@ -1,4 +1,4 @@
-const nextTranslate = require('next-translate');
+const nextTranslate = require('next-translate-plugin');
 
 module.exports = nextTranslate({
   reactStrictMode: true,
@@ -12,8 +12,6 @@ module.exports = nextTranslate({
       'coinicons-api.vercel.app',
       'acceptable.a-ads.com',
       'qrickit.com',
-      'cryptologos.cc',
-      'cdn.iconscout.com',
     ],
-  }
+  },
 });

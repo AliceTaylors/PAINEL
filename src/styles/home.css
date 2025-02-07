@@ -1,0 +1,100 @@
+.main {
+  display: flex;
+  flex-direction: column;
+}
+
+.main h1 {
+  color: #f5f5f5;
+  text-align: center;
+  font-size: 16px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+
+  margin: 20px;
+}
+
+.home-cards > div {
+  margin: 5px;
+}
+
+.cards > div,
+.card {
+  max-width: 250px;
+  padding: 20px;
+  color: #f5f5f5;
+  border: 1px solid #222;
+  background-color: #000;
+  border-radius: 8px;
+  border-left: 5px solid #6b21a8;
+}
+
+.cards > div > div:first-child {
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+.website-details {
+  margin-top: 100px;
+}
+
+.crypto-index-icons img {
+  margin-top: 5px;
+  width: 20px;
+  height: 20px;
+}
+
+.website-details img {
+  border: 1px solid #222;
+  margin: 0;
+  border-radius: 10px !important;
+}
+
+@media screen and (max-width: 1000px) {
+  .header button {
+    font-size: 15px;
+  }
+  .payment-methods {
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .main {
+    margin-top: 50px !important;
+  }
+  .website-details {
+    display: flex;
+    flex-direction: column !important;
+    text-align: center !important;
+    margin-top: 50px;
+    text-align: center !important;
+  }
+  ul,
+  li {
+    margin-left: 0;
+    padding-left: 0;
+  }
+  .website-details img {
+    width: 100% !important;
+    height: 120px !important;
+  }
+  .website-details > div > h3 {
+    font-size: 21px !important;
+    line-height: 0;
+    margin: auto;
+    width: 100%;
+  }
+  .cards {
+    display: flex;
+    flex-direction: column;
+  }
+  .cards > div {
+    max-width: 100%;
+    margin: 10px 0px;
+  }
+}
