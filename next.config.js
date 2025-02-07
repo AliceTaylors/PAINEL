@@ -19,16 +19,20 @@ module.exports = nextTranslate({
   async rewrites() {
     return [
       {
+        source: '/api/check/:token',
+        destination: '/api/check/[token]'
+      },
+      {
+        source: '/api/user/:token',
+        destination: '/api/user/[token]'
+      },
+      {
+        source: '/api/affiliate/stats/:id',
+        destination: '/api/affiliate/stats/[id]'
+      },
+      {
         source: '/seccx.php',
         destination: '/api/seccx'
-      },
-      {
-        source: '/api/checker/:path*',
-        destination: '/api/checker/:path*'
-      },
-      {
-        source: '/api/checks/:path*',
-        destination: '/api/checks/:path*'
       }
     ];
   },
