@@ -1,98 +1,135 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Link from 'next/link';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBarcode,
-  faBitcoinSign,
-  faDollar,
-  faPerson,
+  faHome,
   faWallet,
-} from "@fortawesome/free-solid-svg-icons";
-import Router, { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import withReactContent from "sweetalert2-react-content";
-import Swal from "sweetalert2";
+  faShoppingCart,
+  faCode,
+  faSignOutAlt,
+  faUserCircle,
+  faChartLine,
+  faRocket
+} from '@fortawesome/free-solid-svg-icons';
+import useTranslation from 'next-translate/useTranslation';
 
-import axios from "axios";
-export default function Header({ dashboard }) {
-  const alerts = withReactContent(Swal);
+export default function Header({ user }) {
+  const { t } = useTranslation('common');
 
-  const [user, setUser] = useState(null);
-
-  const getUser = async () => {
-    const res = await axios.get("/api/sessions", {
-      headers: { token: window.localStorage.getItem("token") },
-    });
-
-    if (res.data.error) {
-      setUser(null);
-      return;
-    }
-
-    setUser(res.data.user);
-  };
-
-  useEffect(() => {
-    getUser();
-  }, []);
-
-  useEffect(() => {
-    let index = 0;
-    setInterval(() => {
-      index = index + 1;
-      getUser();
-    }, 30000);
-  }, []);
-
-  const router = useRouter();
   return (
-    <div>
-      <div className="header" style={{ alignItems: "center" }}>
-        <h1
-          style={{
-            cursor: "pointer",
-          }}
+    <header style={{
+      background: 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(17,17,17,0.95) 100%)',
+      backdropFilter: 'blur(10px)',
+      padding: '20px',
+      borderRadius: '15px',
+      marginBottom: '20px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+      border: '1px solid rgba(255,255,255,0.05)'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <Link href="/dashboard">
+          <a style={{
+            fontSize: '1.5em',
+            fontWeight: 'bold',
+            color: '#00ff00',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <FontAwesomeIcon icon={faRocket} />
+            SECCX.PRO
+          </a>
+        </Link>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+          <div style={{
+            background: 'rgba(0,255,0,0.1)',
+            padding: '8px 15px',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <FontAwesomeIcon icon={faUserCircle} style={{ color: '#00ff00' }} />
+            <span style={{ color: '#fff' }}>{user.login}</span>
+          </div>
+          <div style={{
+            background: 'rgba(0,255,0,0.1)',
+            padding: '8px 15px',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <FontAwesomeIcon icon={faChartLine} style={{ color: '#00ff00' }} />
+            <span style={{ color: '#fff' }}>${user.balance.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <nav style={{
+        marginTop: '20px',
+        display: 'flex',
+        gap: '10px',
+        flexWrap: 'wrap'
+      }}>
+        {[
+          { href: '/dashboard', icon: faHome, label: t('home') },
+          { href: '/dashboard/wallet', icon: faWallet, label: t('wallet') },
+          { href: '/dashboard/shop', icon: faShoppingCart, label: t('shop') },
+          { href: '/dashboard/api', icon: faCode, label: 'API' }
+        ].map(({ href, icon, label }) => (
+          <Link key={href} href={href}>
+            <a style={{
+              padding: '10px 20px',
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: '8px',
+              color: '#fff',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.3s ease',
+              ':hover': {
+                background: 'rgba(0,255,0,0.1)',
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <FontAwesomeIcon icon={icon} style={{ color: '#00ff00' }} />
+              {label}
+            </a>
+          </Link>
+        ))}
+        <button
           onClick={() => {
-            router.push("/dashboard");
+            window.localStorage.removeItem('token');
+            window.location.href = '/';
+          }}
+          style={{
+            padding: '10px 20px',
+            background: 'rgba(255,0,0,0.1)',
+            border: 'none',
+            borderRadius: '8px',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginLeft: 'auto'
           }}
         >
-          <FontAwesomeIcon icon={faBarcode} />
-          checker
-          <b
-            className="title-highlight"
-            style={{ color: "#6b21a8 !important" }}
-          >
-           cc
-          </b>
-          
-        </h1>
-
-        {user && (
-          <span
-            onClick={() => {
-              router.push("/dashboard/wallet");
-            }}
-            style={{
-              background: "linear-gradient(to left, #6b21a8, #111)",
-              fontSize: "18px",
-              cursor: "pointer",
-            }}
-          >
-            <FontAwesomeIcon style={{ marginLeft: "5px" }} icon={faWallet} />{" "}
-            {""}{" "}
-            <FontAwesomeIcon style={{ marginLeft: "5px" }} icon={faDollar} />
-            {user && user.balance.toFixed(2)}
-          </span>
-        )}
-      </div>
-
-      <div className="menu-header">
-        <button onClick={() => Router.push("/dashboard")}>Checker</button>
-        <button onClick={() => Router.push("/dashboard/shop")}>Shop</button>
-        <button onClick={() => Router.push("/dashboard/wallet")}>Wallet</button>
-        <button onClick={() => Router.push("/dashboard/api")}>API Docs</button>
-        <button onClick={() => Router.push("/dashboard/settings")}>
-          Settings
+          <FontAwesomeIcon icon={faSignOutAlt} style={{ color: '#ff4444' }} />
+          {t('logout')}
         </button>
-      </div>
-    </div>
+      </nav>
+    </header>
   );
 }
