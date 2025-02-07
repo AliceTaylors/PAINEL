@@ -17,13 +17,11 @@ export default function Header({ user }) {
 
   return (
     <header style={{
-      background: 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(17,17,17,0.95) 100%)',
-      backdropFilter: 'blur(10px)',
+      background: 'linear-gradient(135deg, #111 0%, #000 100%)',
       padding: '20px',
       borderRadius: '15px',
       marginBottom: '20px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-      border: '1px solid rgba(255,255,255,0.05)'
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
     }}>
       <div style={{
         display: 'flex',
@@ -41,7 +39,7 @@ export default function Header({ user }) {
             gap: '10px'
           }}>
             <FontAwesomeIcon icon={faRocket} />
-            SECCX.PRO
+            SECCX<span style={{ color: '#fff' }}>.PRO</span>
           </a>
         </Link>
 
@@ -67,8 +65,10 @@ export default function Header({ user }) {
             borderRadius: '20px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
-          }}>
+            gap: '8px',
+            cursor: 'pointer'
+          }}
+          onClick={() => window.location.href = '/dashboard/wallet'}>
             <FontAwesomeIcon icon={faChartLine} style={{ color: '#00ff00' }} />
             <span style={{ color: '#fff' }}>${user.balance.toFixed(2)}</span>
           </div>
@@ -90,7 +90,7 @@ export default function Header({ user }) {
           <Link key={href} href={href}>
             <a style={{
               padding: '10px 20px',
-              background: 'rgba(255,255,255,0.05)',
+              background: window.location.pathname === href ? 'rgba(0,255,0,0.1)' : '#1a1a1a',
               borderRadius: '8px',
               color: '#fff',
               textDecoration: 'none',
@@ -98,10 +98,7 @@ export default function Header({ user }) {
               alignItems: 'center',
               gap: '8px',
               transition: 'all 0.3s ease',
-              ':hover': {
-                background: 'rgba(0,255,0,0.1)',
-                transform: 'translateY(-2px)'
-              }
+              fontSize: '14px'
             }}>
               <FontAwesomeIcon icon={icon} style={{ color: '#00ff00' }} />
               {label}
@@ -123,7 +120,8 @@ export default function Header({ user }) {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            marginLeft: 'auto'
+            marginLeft: 'auto',
+            fontSize: '14px'
           }}
         >
           <FontAwesomeIcon icon={faSignOutAlt} style={{ color: '#ff4444' }} />
