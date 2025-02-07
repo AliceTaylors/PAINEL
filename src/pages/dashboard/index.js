@@ -39,6 +39,7 @@ export default function Painel() {
   const [dies, setDies] = useState([]);
   const router = useRouter();
   const [status, setStatus] = useState(null);
+  const [premiumList, setPremiumList] = useState(null);
 
   const getUser = async () => {
     const res = await axios.get('/api/sessions', {
@@ -179,6 +180,73 @@ export default function Painel() {
     });
   }
 
+  async function handlePremiumCheck(e) {
+    e.preventDefault();
+
+    getUser();
+
+    if (user.balance < 0.1) {
+      return alerts
+        .fire({
+          icon: 'warning',
+          html: 'Insufficient funds to check cards. <b>Add funds now</b>!',
+        })
+        .then(() => {
+          router.push('/dashboard/wallet');
+        });
+    }
+
+    setChecking(true);
+
+    const listFormated = String(premiumList)
+      .split('\n')
+      .filter((n) => n);
+
+    if (!user) {
+      router.push('/');
+    }
+
+    listFormated.forEach(async (cc, index) => {
+      setTimeout(async () => {
+        if (user.balance < 0.1) {
+          return alerts
+            .fire({
+              icon: 'warning',
+              html: 'Insufficient funds to check cards. <b>Recharge now</b>!',
+            })
+            .then(() => {
+              router.push('/dashboard/wallet');
+            });
+        }
+
+        const check = await axios.post(
+          '/api/premium-checks',
+          {
+            cc,
+            gateway_server:
+              'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
+          },
+          { headers: { token: window.localStorage.getItem('token') } }
+        );
+
+        const data = check.data;
+
+        if (data.success) {
+          setLives((old) => [data, ...old]);
+        } else {
+          setDies((old) => [data, ...old]);
+        }
+
+        if (listFormated.length - 1 == lives.length + dies.length) {
+          alerts.fire({
+            icon: 'success',
+            html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
+          });
+        }
+      }, 3000 * index);
+    });
+  }
+
   useEffect(() => {
     function checkVersion() {
       if (!window.localStorage.getItem(versionData.versionCode)) {
@@ -304,6 +372,56 @@ export default function Painel() {
                   <button style={{ marginTop: '20px' }}>
                     {' '}
                     <FontAwesomeIcon icon={faRocket} /> Check
+                  </button>
+                </form>
+              </div>
+              <div className="checker">
+                <h2>
+                  <span>
+                    {' '}
+                    <FontAwesomeIcon icon={faCreditCard} /> PREMIUM CHECKER <br />
+                    <small
+                      style={{
+                        fontSize: '14px',
+                        opacity: 0.9,
+                        fontWeight: 'lighter',
+                      }}
+                    >
+                      Premium Gateway: High Approval Rate
+                    </small>
+                  </span>
+                  <div>
+                    <small
+                      style={{
+                        fontSize: '12px',
+                        letterSpacing: 1,
+                        background: '#f5f5f5',
+                        color: 'black',
+                        marginLeft: '10px',
+                        padding: '1px 2px',
+                        borderRadius: '5px',
+                      }}
+                    >
+                      $1.00/live | $0.10/die
+                    </small>
+                  </div>
+                </h2>
+                <form
+                  onSubmit={handlePremiumCheck}
+                  style={{ display: 'flex', flexDirection: 'column' }}
+                >
+                  <textarea
+                    onChange={(e) => setPremiumList(e.target.value)}
+                    placeholder="Format: 
+50541054150454054|00|0000|000"
+                    name=""
+                    id=""
+                    cols="30"
+                    rows="10"
+                  ></textarea>
+                  <button style={{ marginTop: '20px' }}>
+                    {' '}
+                    <FontAwesomeIcon icon={faRocket} /> Check Premium
                   </button>
                 </form>
               </div>
