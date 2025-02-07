@@ -1,5 +1,5 @@
-import dbConnect from '../../utils/dbConnect';
-import User from '../../models/User';
+import dbConnect from '../../../utils/dbConnect';
+import User from '../../../models/User';
 import axios from 'axios';
 import crypto from 'crypto';
 
