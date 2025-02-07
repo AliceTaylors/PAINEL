@@ -15,13 +15,5 @@ module.exports = nextTranslate({
       'cryptologos.cc',
       'cdn.iconscout.com',
     ],
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/check/:id',
-        destination: '/api/check/[id]'
-      }
-    ];
   }
 });
