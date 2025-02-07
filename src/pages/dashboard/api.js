@@ -136,8 +136,8 @@ export default function Api() {
                 <h2><FontAwesomeIcon icon={faRocket} style={{ marginRight: '10px', color: '#00ff00' }} />Quick Start</h2>
                 <div className="endpoint-box" style={{ background: '#0a0a0a', padding: '20px', borderRadius: '8px', marginTop: '20px' }}>
                   <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>Base URL</h3>
-                  <code style={{ background: '#1a1a1a', padding: '15px', borderRadius: '5px', display: 'block' }}>
-                    GET https://painel-seccx.vercel.app/api/external-check
+                  <code style={{ background: '#1a1a1a', padding: '15px', borderRadius: '5px', display: 'block', position: 'relative' }}>
+                    GET https://{window.location.host}/api/external-check?user={user?.login}&password=YOUR_PASSWORD&checker=TYPE&lista=CC|MM|YYYY|CVV
                   </code>
                 </div>
               </div>
