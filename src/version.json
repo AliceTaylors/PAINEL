@@ -1,0 +1,75 @@
+{
+  "versionCode": "v6.0",
+  "updates": "<div style='background: linear-gradient(45deg, rgba(107, 33, 168, 0.1), rgba(71, 118, 230, 0.1)); padding: 15px; border-radius: 8px; border: 1px solid rgba(107, 33, 168, 0.2);'><b style='color: #6b21a8; font-size: 14px;'>🚀 NEW FEATURES</b><br/><ul style='margin: 10px 0; padding-left: 20px;'><li>Enhanced Premium Checker</li><li>Advanced Analytics Dashboard</li><li>Affiliate System Integration</li><li>User Level Progression</li></ul><b style='color: #4776E6; font-size: 14px;'>💳 PAYMENT METHODS</b><ul style='margin: 10px 0; padding-left: 20px;'><li>Bitcoin (BTC)</li><li>Ethereum (ETH)</li><li>Litecoin (LTC)</li><li>Dogecoin (DOGE)</li><li>Bitcoin Cash (BCH)</li><li>Tether (USDT)</li><li>Perfect Money</li><li>PIX (Brazil)</li></ul><small style='display: block; margin-top: 10px; color: #888; font-size: 12px;'>Version 6.0 - Released June 2024</small></div>",
+  "paymentMethods": {
+    "crypto": [
+      {
+        "name": "Bitcoin",
+        "code": "BTC",
+        "icon": "₿",
+        "enabled": true
+      },
+      {
+        "name": "Ethereum",
+        "code": "ETH",
+        "icon": "Ξ",
+        "enabled": true
+      },
+      {
+        "name": "Litecoin",
+        "code": "LTC",
+        "icon": "Ł",
+        "enabled": true
+      },
+      {
+        "name": "Dogecoin",
+        "code": "DOGE",
+        "icon": "Ð",
+        "enabled": true
+      },
+      {
+        "name": "Bitcoin Cash",
+        "code": "BCH",
+        "icon": "₿",
+        "enabled": true
+      },
+      {
+        "name": "Tether",
+        "code": "USDT",
+        "icon": "₮",
+        "enabled": true
+      }
+    ],
+    "fiat": [
+      {
+        "name": "Perfect Money",
+        "code": "PM",
+        "icon": "💰",
+        "enabled": true
+      },
+      {
+        "name": "PIX",
+        "code": "PIX",
+        "icon": "🇧🇷",
+        "enabled": true
+      }
+    ]
+  },
+  "features": {
+    "checker": {
+      "premium": true,
+      "adyen": true,
+      "stripe": true
+    },
+    "tools": {
+      "binChecker": true,
+      "proxyTester": true,
+      "cardGenerator": true
+    },
+    "security": {
+      "2fa": true,
+      "antiBot": true,
+      "ipWhitelist": true
+    }
+  }
+}

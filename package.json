@@ -1,0 +1,51 @@
+{
+  "name": "chk",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^7.6.0",
+    "@fortawesome/fontawesome-svg-core": "^6.2.0",
+    "@fortawesome/free-solid-svg-icons": "^6.2.0",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@vercel/analytics": "^0.1.5",
+    "axios": "^0.27.2",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.0.2",
+    "fast-luhn": "^2.0.0",
+    "jsdom": "^20.0.3",
+    "jsonwebtoken": "^8.5.1",
+    "mercadopago": "^2.0.7",
+    "mongoose": "^6.5.5",
+    "next": "12.2.5",
+    "next-cookie": "^2.8.0",
+    "next-seo": "^5.8.0",
+    "next-translate": "^2.0.5",
+    "node-telegram-bot-api": "^0.60.0",
+    "react": "18.2.0",
+    "react-auto-translate": "^0.0.6",
+    "react-chat-widget": "^3.1.4",
+    "react-copy-to-clipboard": "^5.1.0",
+    "react-currency-input-field": "^3.6.7",
+    "react-dom": "18.2.0",
+    "react-loading": "^2.0.3",
+    "react-loading-skeleton": "^3.1.0",
+    "react-modal": "^3.16.1",
+    "react-qr-code": "^2.0.12",
+    "react-tsparticles": "^2.5.3",
+    "sweetalert2": "^11.4.32",
+    "sweetalert2-react-content": "^5.0.3",
+    "telegram": "^2.12.8",
+    "tsparticles": "^2.5.3"
+  },
+  "devDependencies": {
+    "eslint": "8.23.0",
+    "eslint-config-next": "12.2.5",
+    "next-translate-plugin": "^2.0.5"
+  }
+}
