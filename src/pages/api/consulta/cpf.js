@@ -1,4 +1,5 @@
-import { connectToDatabase } from '../../../utils/dbConnect';
+import User from '../../../models/User';
+import { checkToken } from '../../../utils/auth';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -7,20 +8,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { db } = await connectToDatabase();
     const { cpf } = req.body;
+    const { token } = req.headers;
     
     // Verificar token e usuário
-    const token = req.headers.token;
-    if (!token) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    const validToken = checkToken(token);
+    if (!validToken) {
+      return res.send({ error: "Not allowed" });
     }
 
-    const dbUser = await db.collection('users').findOne({ 
-      'sessions.token': token 
-    });
+    const user = await User.findOne({ _id: validToken.user._id });
 
-    if (!dbUser) {
+    if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
 
@@ -28,7 +27,7 @@ export default async function handler(req, res) {
     const cost = 2.00;
 
     // Verificar saldo
-    if (dbUser.balance < cost) {
+    if (user.balance < cost) {
       return res.status(400).json({ message: 'Insufficient balance' });
     }
 
@@ -40,23 +39,15 @@ export default async function handler(req, res) {
     }
 
     // Atualizar saldo e logs do usuário
-    await db.collection('users').updateOne(
-      { _id: dbUser._id },
-      {
-        $inc: { balance: -cost },
-        $push: {
-          logs: {
-            $each: [{
-              history_type: 'CONSULTA CPF',
-              cost: -cost,
-              data: `CPF: ${cpf}`,
-              date: new Date()
-            }],
-            $position: 0
-          }
-        }
-      }
-    );
+    await user.updateOne({
+      logs: [{
+        history_type: 'CONSULTA CPF',
+        cost: -cost,
+        data: `CPF: ${cpf}`,
+        date: new Date()
+      }, ...user.logs],
+      $inc: { balance: -cost }
+    });
 
     return res.json(apiResponse.data);
 
