@@ -117,7 +117,7 @@ export default function Painel() {
     setSearchingText("Searching...");
     setCards([]);
 
-    const searchValue = e.target.value.trim();
+    const searchValue = e.target.value.trim().toLowerCase();
     
     if (!searchValue) {
       getData();
@@ -125,19 +125,29 @@ export default function Painel() {
     }
 
     try {
-      const res = await axios.get(
-        "/api/cards?q=" + encodeURIComponent(searchValue),
-        {
-          headers: { token: window.localStorage.getItem("token") },
-        }
-      );
+      const res = await axios.get("/api/cards", {
+        headers: { token: window.localStorage.getItem("token") },
+      });
 
       if (res.data && Array.isArray(res.data)) {
-        if (res.data.length === 0) {
+        const filteredCards = res.data.filter(card => {
+          const searchTerms = [
+            card.number,
+            card.bin,
+            card.data.toLowerCase(),
+            getCardBrand(card.number),
+            getCardCountry(card.bin),
+            card.level?.toLowerCase()
+          ];
+
+          return searchTerms.some(term => term && term.includes(searchValue));
+        });
+
+        if (filteredCards.length === 0) {
           setSearchingText("No cards found!");
           setCards([]);
         } else {
-          const cardsWithColors = res.data.map((card) => ({
+          const cardsWithColors = filteredCards.map(card => ({
             ...card,
             color: getRandomColor()
           }));
@@ -150,6 +160,38 @@ export default function Painel() {
       setSearchingText("Error searching cards");
       setCards([]);
     }
+  };
+
+  const getCardBrand = (number) => {
+    const firstDigit = number?.charAt(0);
+    const firstSixDigits = number?.substring(0, 6);
+    
+    if (firstDigit === '4') return 'visa';
+    if (firstDigit === '5') return 'mastercard';
+    if (firstDigit === '3' && (number?.charAt(1) === '4' || number?.charAt(1) === '7')) return 'amex';
+    if (firstDigit === '6') return 'discover';
+    
+    return 'unknown';
+  };
+
+  const getCardCountry = (bin) => {
+    const countryMap = {
+      '4': 'us',
+      '51': 'us',
+      '52': 'us',
+      '34': 'us',
+      '37': 'us',
+      '60': 'us',
+    };
+
+    for (let i = bin?.length; i > 0; i--) {
+      const prefix = bin?.substring(0, i);
+      if (countryMap[prefix]) {
+        return countryMap[prefix];
+      }
+    }
+
+    return 'unknown';
   };
 
   const debounce = (func, wait) => {
@@ -316,7 +358,7 @@ export default function Painel() {
                 }} />
                 <input
                   onChange={debouncedSearch}
-                  placeholder="Search cards (e.g. #US, platinum)"
+                  placeholder="Search by brand, country, BIN or level (e.g. visa, us, 424242, platinum)"
                   style={{
                     width: '100%',
                     padding: '12px 15px 12px 45px',
