@@ -11,6 +11,16 @@ import {
   faMessage,
   faPerson,
   faUser,
+  faCreditCard,
+  faShieldHalved,
+  faRocket,
+  faGem,
+  faChartLine,
+  faServer,
+  faBolt,
+  faUserShield,
+  faDatabase,
+  faCode
 } from '@fortawesome/free-solid-svg-icons';
 import { NextSeo } from 'next-seo';
 import { useEffect } from 'react';
@@ -22,6 +32,7 @@ import { loadFull } from 'tsparticles';
 import Link from 'next/link';
 import axios from 'axios';
 import Head from 'next/head';
+
 export default function Home() {
   const router = useRouter();
   const [status, setStatus] = useState(null);
@@ -90,291 +101,442 @@ export default function Home() {
     await console.log(container);
   }, []);
   return (
-    <div className="root">
-      <Particles
-        id="tsparticles"
-        options={{
-          background: {
-            color: {
-              value: 'transparent',
-            },
-          },
-          fpsLimit: 60,
-          interactivity: {
-            events: {
-              onClick: {
-                enable: true,
-                mode: 'push',
-              },
-              onHover: {
-                enable: true,
-                mode: 'repulse',
-              },
-              resize: true,
-            },
-            modes: {
-              push: {
-                quantity: 4,
-              },
-              repulse: {
-                distance: 200,
-                duration: 0.4,
-              },
-            },
-          },
-          particles: {
-            color: {
-              value: '#f5f5f5',
-            },
-            links: {
-              color: '#f5f5f5',
-              distance: 150,
-              enable: true,
-              opacity: 0.0,
-              width: 1,
-            },
-            collisions: {
-              enable: true,
-            },
-            move: {
-              direction: 'none',
-              enable: true,
-              outModes: {
-                default: 'bounce',
-              },
-              random: false,
-              speed: 1,
-              straight: false,
-            },
-            number: {
-              density: {
-                enable: true,
-                area: 10000,
-              },
-              value: 50,
-            },
-            opacity: {
-              value: 0.1,
-            },
-            shape: {
-              type: 'circle',
-            },
-            size: {
-              value: { min: 1, max: 5 },
-            },
-          },
-          detectRetina: true,
-        }}
-        init={particlesInit}
-        loaded={particlesLoaded}
-      />
-      <NextSeo
-        title="CHECKERCC.SITE - CC CHECKER, CCN/CVV SHOP & CARDING TECHNOLOGY."
-        description="Best CC Checker of World. We Develop edge carding technology! CVV Checker & Shop 24/7"
-        openGraph={{
-          url: 'https://www.checkercc.site',
-          type: 'website',
-          locale: 'en_US',
-          images: [
-            {
-              url: 'https://www.checkercc.site/og-image.png',
-              width: 800,
-              height: 600,
-              alt: 'Og Image Alt',
-            },
-          ],
-          title: 'CHECKERCC.SITE - CC CHECKER & CVV DUMP SHOP',
-          description: 'BEST CC CHECKER, DUMP SHOP & CARDING STUFFS. ',
-          siteName: 'CHECKERCC.SITE CC Checker & Shop',
-        }}
-      />
-      <div className="header" style={{ padding: '20px' }}>
-        <h1 style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
-          <FontAwesomeIcon icon={faBarcode} />
-          checker
-          <b style={{ color: '#6b21a8' }}>cc</b>
-          <small> </small>
-        </h1>
-        {!user ? (
-          <Link href="/login">
-            <button>Login</button>
-          </Link>
-        ) : (
-          <Link href="/dashboard">
-            <button>
-              Panel <FontAwesomeIcon icon={faUser} />
-            </button>
-          </Link>
-        )}
-      </div>
+    <div className="landing-page">
+      <Head>
+        <title>SECCX.PRO | Premium Card Checker</title>
+        <meta name="description" content="Professional card checking service with advanced features and real-time validation" />
+      </Head>
 
-      <div
-        className="slogan"
-        style={{
-          marginTop: '20px',
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space',
-          alignItems: 'center',
-        }}
-      >
-        <Image src={'/illustration1.svg'} width={'350px'} height={'350px'} />
-        <div style={{}}>
-          <h1 style={{ fontSize: '38px', maxWidth: '428px' }}>
-           Fast CC Checker & Shop!
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1>
+            <span className="gradient-text">SECCX.PRO</span>
+            <span className="version-badge">v2.0</span>
           </h1>
-          <div
-            className="signup-action"
-            style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}
-          >
-            <button
-              style={{}}
-              onClick={() => {
-                router.push('/signup');
-              }}
-            >
-              Get started <FontAwesomeIcon icon={faArrowRight} />{' '}
-            </button>
-            <div>
-              <small
-                style={{
-                  background: 'greenyellow',
-                  borderRadius: '8px',
-                  color: '#111',
-                  padding: '3px 2px',
-                  fontSize: '12px',
-                  opacity: 0.8,
-                  letterSpacing: 1.5,
-                }}
-              >
-                + Earn 1 USD free credit
-              </small>
-            </div>
-          </div>
-          <br />
-        </div>
-      </div>
-
-      <div
-        className="website-details"
-        style={{
-          justifyContent: 'center',
-          gap: '20px',
-          display: 'flex',
-          flexDirection: 'row',
-          maxWidth: '80%',
-          margin: 'auto',
-          marginTop: '100px',
-        }}
-      >
-        <img
-          style={{
-            height: '300px',
-          }}
-          src="/site-screenshot.png"
-          alt="CHECKERCC Dashboard Screenshot"
-        />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <h3
-            style={{
-              fontSize: '32px',
-              lineHeight: '30px',
-            }}
-          >
-            Enjoy our products :)
-          </h3>
-          <ul style={{ marginTop: 0 }}>
-            <li>Fast CC Checker</li>
-            <li>Fresh CC Shop</li>
-            <li>No e-mail needed</li>
-            <li>No IP registration</li>
-            <li>Crypto-Payments available</li>
-          </ul>
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <Link href="/signup">
-              <button
-                style={{
-                  background: 'greenyellow',
-                  fontSize: '18px',
-                  padding: '5px',
-                  color: '#111',
-                }}
-              >
-                Create new account
-              </button>
-            </Link>
-            <span style={{ textAlign: 'center' }}>or</span>
+          <p className="hero-subtitle">Advanced Card Checking Platform</p>
+          
+          <div className="hero-buttons">
             <Link href="/login">
-              <button
-                style={{
-                  background: '#111',
-                  fontSize: '18px',
-                  padding: '5px',
-                  color: '#f5f5f5',
-                }}
-              >
-                Sign in
-              </button>
+              <a className="hero-button login">
+                <FontAwesomeIcon icon={faRocket} />
+                Launch Platform
+              </a>
+            </Link>
+            <Link href="/signup">
+              <a className="hero-button register">
+                <FontAwesomeIcon icon={faGem} />
+                Create Account
+              </a>
+            </Link>
+          </div>
+        </div>
+
+        <div className="stats-bar">
+          <div className="stat-item">
+            <FontAwesomeIcon icon={faChartLine} />
+            <div>
+              <h3>99.9%</h3>
+              <p>Uptime</p>
+            </div>
+          </div>
+          <div className="stat-item">
+            <FontAwesomeIcon icon={faBolt} />
+            <div>
+              <h3>3s</h3>
+              <p>Per Check</p>
+            </div>
+          </div>
+          <div className="stat-item">
+            <FontAwesomeIcon icon={faServer} />
+            <div>
+              <h3>24/7</h3>
+              <p>Support</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="features-section">
+        <h2>Premium Features</h2>
+        <div className="features-grid">
+          <div className="feature-card">
+            <FontAwesomeIcon icon={faCreditCard} className="feature-icon" />
+            <h3>Dual Checkers</h3>
+            <p>Choose between Standard and Premium gateways</p>
+            <ul>
+              <li>Adyen Gateway: $0.50/live</li>
+              <li>Premium Gateway: $1.00/live</li>
+              <li>Real-time validation</li>
+              <li>Detailed card info</li>
+            </ul>
+          </div>
+
+          <div className="feature-card">
+            <FontAwesomeIcon icon={faShieldHalved} className="feature-icon" />
+            <h3>Advanced Security</h3>
+            <p>Enterprise-grade protection for your operations</p>
+            <ul>
+              <li>Encrypted connections</li>
+              <li>Secure authentication</li>
+              <li>Activity monitoring</li>
+              <li>IP protection</li>
+            </ul>
+          </div>
+
+          <div className="feature-card">
+            <FontAwesomeIcon icon={faDatabase} className="feature-icon" />
+            <h3>Premium Information</h3>
+            <p>Comprehensive card details and analysis</p>
+            <ul>
+              <li>Bank identification</li>
+              <li>Card level detection</li>
+              <li>BIN validation</li>
+              <li>Country tracking</li>
+            </ul>
+          </div>
+
+          <div className="feature-card">
+            <FontAwesomeIcon icon={faCode} className="feature-icon" />
+            <h3>API Integration</h3>
+            <p>Seamless integration with your systems</p>
+            <ul>
+              <li>RESTful API</li>
+              <li>Detailed documentation</li>
+              <li>Sample code</li>
+              <li>Multiple languages</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="pricing-section">
+        <h2>Transparent Pricing</h2>
+        <div className="pricing-cards">
+          <div className="pricing-card standard">
+            <div className="pricing-header">
+              <h3>Standard</h3>
+              <div className="price">$0.50<span>/live</span></div>
+            </div>
+            <ul>
+              <li>✓ Adyen Gateway</li>
+              <li>✓ Basic validation</li>
+              <li>✓ Fast checking</li>
+              <li>✓ No cost for dies</li>
+              <li>✓ API access</li>
+            </ul>
+            <Link href="/signup">
+              <a className="pricing-button">Get Started</a>
+            </Link>
+          </div>
+
+          <div className="pricing-card premium">
+            <div className="premium-badge">PREMIUM</div>
+            <div className="pricing-header">
+              <h3>Premium</h3>
+              <div className="price">$1.00<span>/live</span></div>
+            </div>
+            <ul>
+              <li>✓ Premium Gateway</li>
+              <li>✓ Enhanced validation</li>
+              <li>✓ BIN information</li>
+              <li>✓ Bank details</li>
+              <li>✓ Card level & type</li>
+              <li>✓ Priority support</li>
+            </ul>
+            <Link href="/signup">
+              <a className="pricing-button premium">Get Premium</a>
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="main" style={{ marginTop: '100px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h3 style={{ textTransform: 'uppercase' }}>WHY WE ARE THE BEST?</h3>
-          <span style={{ opacity: '0.5' }}>
-            All of our products are thought of the customer and the evolution of
-            the community!
-          </span>
-        </div>
+      <style jsx>{`
+        .landing-page {
+          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+          min-height: 100vh;
+          color: #fff;
+        }
 
-        <div className="cards home-cards">
-          <div>
-            <div>
-              <FontAwesomeIcon icon={faCheck} />
-            </div>
-            <div style={{ fontWeight: 'bold' }}>
-              CHECK CARDS
-            </div>
-            <div>Best checkers of world!</div>
-          </div>
-         
+        .hero-section {
+          padding: 100px 20px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+          background: radial-gradient(circle at center, rgba(0,255,68,0.1) 0%, transparent 70%);
+        }
 
-          <div>
-            <div>
-              <FontAwesomeIcon icon={faPerson} />
-            </div>
-            <div style={{ fontWeight: 'bold' }}>
-              {status && status.totalUsers} USERS
-            </div>
-            <div>Already created an account and availed our services!</div>
-          </div>
-        </div>
+        .hero-content {
+          max-width: 800px;
+          margin: 0 auto;
+        }
 
-        <div style={{ marginTop: '70px', marginBottom: '20px', opacity: 0.4 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <button
-              onClick={() => {
-                router.push('https://t.me/CHECKERCC');
-              }}
-              style={{ padding: '8px', fontSize: '14px' }}
-            >
-              <FontAwesomeIcon icon={faMessage} /> Join Telegram Chat
-            </button>
-          </div>
+        .gradient-text {
+          font-size: 4rem;
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-weight: bold;
+        }
 
-          <div style={{ textAlign: 'center' }}>
-            <span>checkercc.tech @ 2022~{new Date().getFullYear()}</span>
-          </div>
-        </div>
-      </div>
+        .version-badge {
+          font-size: 1rem;
+          background: rgba(0,255,68,0.1);
+          padding: 5px 10px;
+          border-radius: 20px;
+          margin-left: 10px;
+          color: #00ff44;
+          vertical-align: super;
+        }
+
+        .hero-subtitle {
+          font-size: 1.5rem;
+          color: #666;
+          margin: 20px 0 40px;
+        }
+
+        .hero-buttons {
+          display: flex;
+          gap: 20px;
+          justify-content: center;
+        }
+
+        .hero-button {
+          padding: 15px 30px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          transition: all 0.3s ease;
+        }
+
+        .hero-button.login {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+        }
+
+        .hero-button.register {
+          background: transparent;
+          border: 2px solid #00ff44;
+          color: #00ff44;
+        }
+
+        .hero-button:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0,255,68,0.2);
+        }
+
+        .stats-bar {
+          display: flex;
+          justify-content: center;
+          gap: 50px;
+          margin-top: 80px;
+        }
+
+        .stat-item {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          color: #00ff44;
+        }
+
+        .stat-item h3 {
+          font-size: 1.5rem;
+          margin: 0;
+        }
+
+        .stat-item p {
+          color: #666;
+          margin: 0;
+        }
+
+        .features-section {
+          padding: 100px 20px;
+        }
+
+        .features-section h2 {
+          text-align: center;
+          font-size: 2.5rem;
+          margin-bottom: 60px;
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 30px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .feature-card {
+          background: rgba(0,255,68,0.05);
+          padding: 30px;
+          border-radius: 20px;
+          border: 1px solid rgba(0,255,68,0.1);
+          transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+          transform: translateY(-10px);
+          box-shadow: 0 20px 40px rgba(0,255,68,0.1);
+          border-color: #00ff44;
+        }
+
+        .feature-icon {
+          font-size: 2rem;
+          color: #00ff44;
+          margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+          color: #fff;
+          margin-bottom: 15px;
+        }
+
+        .feature-card p {
+          color: #666;
+          margin-bottom: 20px;
+        }
+
+        .feature-card ul {
+          color: #888;
+          list-style: none;
+          padding: 0;
+        }
+
+        .feature-card li {
+          margin: 10px 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .feature-card li:before {
+          content: "→";
+          color: #00ff44;
+        }
+
+        .pricing-section {
+          padding: 100px 20px;
+          background: linear-gradient(180deg, transparent 0%, rgba(0,255,68,0.05) 100%);
+        }
+
+        .pricing-section h2 {
+          text-align: center;
+          font-size: 2.5rem;
+          margin-bottom: 60px;
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .pricing-cards {
+          display: flex;
+          justify-content: center;
+          gap: 40px;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+
+        .pricing-card {
+          background: rgba(0,255,68,0.05);
+          padding: 40px;
+          border-radius: 20px;
+          border: 1px solid rgba(0,255,68,0.1);
+          min-width: 300px;
+          position: relative;
+        }
+
+        .pricing-card.premium {
+          background: linear-gradient(135deg, rgba(0,255,68,0.1) 0%, rgba(0,204,68,0.1) 100%);
+          border: 2px solid #00ff44;
+        }
+
+        .premium-badge {
+          position: absolute;
+          top: -15px;
+          right: -15px;
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: bold;
+          color: #000;
+        }
+
+        .pricing-header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+
+        .price {
+          font-size: 3rem;
+          font-weight: bold;
+          color: #00ff44;
+        }
+
+        .price span {
+          font-size: 1rem;
+          color: #666;
+        }
+
+        .pricing-card ul {
+          list-style: none;
+          padding: 0;
+          margin-bottom: 30px;
+        }
+
+        .pricing-card li {
+          margin: 15px 0;
+          color: #888;
+        }
+
+        .pricing-button {
+          display: block;
+          text-align: center;
+          padding: 15px;
+          border-radius: 12px;
+          background: #111;
+          color: #00ff44;
+          border: 1px solid #00ff44;
+          transition: all 0.3s ease;
+        }
+
+        .pricing-button.premium {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          border: none;
+        }
+
+        .pricing-button:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0,255,68,0.2);
+        }
+
+        @media (max-width: 768px) {
+          .gradient-text {
+            font-size: 3rem;
+          }
+
+          .hero-buttons {
+            flex-direction: column;
+          }
+
+          .stats-bar {
+            flex-direction: column;
+            gap: 30px;
+          }
+
+          .pricing-cards {
+            flex-direction: column;
+            align-items: center;
+          }
+        }
+      `}</style>
     </div>
   );
 }
