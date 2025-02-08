@@ -265,81 +265,75 @@ export default function Wallet() {
       )}
 
       <style jsx>{`
-        .wallet-container {
+        .root {
           padding: 20px;
           max-width: 1200px;
           margin: 0 auto;
         }
 
-        .balance-card {
-          background: rgba(0,255,68,0.03);
-          border: 1px solid rgba(0,255,68,0.1);
-          border-radius: 20px;
-          padding: 30px;
-          margin-bottom: 30px;
+        h2 {
+          color: #00ff44;
+          font-size: 1.8rem;
+          margin-bottom: 25px;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          gap: 10px;
         }
 
-        .balance-info h3 {
+        small {
           color: #888;
-          margin: 0 0 10px 0;
+          font-size: 0.9rem;
+        }
+
+        span {
+          color: #00ff44;
           font-size: 1.1rem;
         }
 
-        .balance-amount {
-          font-size: 2rem;
-          color: #00ff44;
-          font-weight: 600;
+        .recharge {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 25px;
+          margin: 20px 0;
         }
 
-        .sync-button {
-          background: rgba(0,255,68,0.1);
-          border: none;
-          color: #00ff44;
-          padding: 10px 20px;
-          border-radius: 12px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.3s ease;
-        }
-
-        .wallet-sections {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 20px;
-        }
-
-        .redeem-section, .history-section {
+        .recharge-redeem {
           background: rgba(0,255,68,0.03);
           border: 1px solid rgba(0,255,68,0.1);
           border-radius: 20px;
           padding: 25px;
         }
 
+        .recharge-history {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 25px;
+          margin-top: 20px;
+        }
+
         h3 {
           color: #00ff44;
-          margin: 0 0 20px 0;
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          font-size: 1.3rem;
+          margin-bottom: 15px;
         }
 
-        form {
-          display: flex;
-          gap: 10px;
+        label {
+          color: #888;
+          display: block;
+          margin-bottom: 8px;
         }
 
-        input {
-          flex: 1;
+        input, select {
+          width: 100%;
           padding: 12px 15px;
-          border-radius: 12px;
-          border: 1px solid #222;
           background: rgba(17,17,17,0.7);
+          border: 1px solid #222;
+          border-radius: 12px;
           color: #fff;
+          font-size: 1rem;
+          margin-bottom: 15px;
         }
 
         button {
@@ -348,78 +342,93 @@ export default function Wallet() {
           border: none;
           padding: 12px 25px;
           border-radius: 12px;
-          cursor: pointer;
           font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          cursor: pointer;
+          width: 100%;
+          font-size: 1rem;
+          margin: 10px 0;
         }
 
-        .history-list {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
-        .history-item {
+        .payment-methods {
+          margin-top: 20px;
           padding: 15px;
-          background: rgba(17,17,17,0.7);
+          background: rgba(17,17,17,0.5);
           border-radius: 12px;
         }
 
-        .history-details {
+        .crypto-icons {
           display: flex;
-          justify-content: space-between;
+          gap: 10px;
           align-items: center;
+          justify-content: center;
+          margin-bottom: 15px;
         }
 
-        .history-type {
-          color: #888;
+        .crypto-icons img {
+          width: 30px;
+          height: 30px;
         }
 
-        .income {
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+        }
+
+        th, td {
+          padding: 12px;
+          text-align: left;
+          border-bottom: 1px solid #222;
+        }
+
+        th {
           color: #00ff44;
+          font-weight: 600;
         }
 
-        .expense {
-          color: #ff4444;
+        tr:hover {
+          background: rgba(0,255,68,0.05);
+        }
+
+        hr {
+          border: none;
+          border-top: 1px solid #222;
+          margin: 30px 0;
         }
 
         @media (max-width: 768px) {
-          .wallet-container {
+          .root {
             padding: 15px;
           }
 
-          .balance-card {
-            flex-direction: column;
-            text-align: center;
-            gap: 20px;
+          h2 {
+            font-size: 1.5rem;
+          }
+
+          .recharge, .recharge-redeem, .recharge-history {
             padding: 20px;
           }
 
-          .balance-amount {
-            font-size: 1.8rem;
-          }
-
-          form {
-            flex-direction: column;
-          }
-
           button {
-            width: 100%;
-            justify-content: center;
+            padding: 10px 20px;
           }
 
-          .wallet-sections {
-            grid-template-columns: 1fr;
+          .crypto-icons img {
+            width: 25px;
+            height: 25px;
           }
 
-          .history-item {
-            padding: 12px;
-          }
-
-          .history-type {
+          table {
             font-size: 0.9rem;
+          }
+
+          th, td {
+            padding: 10px;
           }
         }
       `}</style>
