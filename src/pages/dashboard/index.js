@@ -265,6 +265,14 @@ export default function Painel() {
     e.preventDefault();
     await getUser();
 
+    if (!list || list.trim() === '') {
+      return alerts.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Please enter cards to check'
+      });
+    }
+
     if (user.balance < CHECKER_CONFIG[checkerType].liveCost) {
       return alerts.fire({
         icon: 'warning',
@@ -275,65 +283,80 @@ export default function Painel() {
     setChecking(true);
     const listFormated = String(list).split('\n').filter(n => n);
 
-    listFormated.forEach(async (cc, index) => {
-      setTimeout(async () => {
+    try {
+      for (let i = 0; i < listFormated.length; i++) {
+        const cc = listFormated[i];
+        
+        // Aguardar 3 segundos entre cada check
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
         try {
           const token = window.localStorage.getItem('token');
-          
-          // Usar o endpoint correto baseado no tipo de checker
-          const apiUrl = checkerType === 'premium' ? 
-            process.env.API_2_URL + cc :
-            process.env.API_1_URL + cc;
-
-          const check = await axios.get(apiUrl, {
+          const check = await axios.post('/api/checks', {
+            cc,
+            checker: checkerType,
+            gateway_server: `us-${Math.floor(Math.random() * 20) + 1}`
+          }, {
             headers: { token }
           });
 
           const data = check.data;
+          const binInfo = await getBinInfo(cc.split('|')[0].slice(0,6));
+          
+          const resultData = {
+            ...data,
+            cc,
+            key: Date.now() + i,
+            checkedAt: new Date().toISOString(),
+            binInfo
+          };
 
           if (data.success) {
-            setLives(old => [
-              {
-                ...data,
-                cc,
-                key: Date.now() + index, // Chave única para cada resultado
-                checkedAt: new Date().toISOString()
-              }, 
-              ...old
-            ]);
+            setLives(old => [resultData, ...old]);
           } else {
-            setDies(old => [
-              {
-                ...data,
-                cc,
-                key: Date.now() + index,
-                checkedAt: new Date().toISOString()
-              }, 
-              ...old
-            ]);
+            setDies(old => [resultData, ...old]);
           }
 
-          if (index === listFormated.length - 1) {
-            setChecking(false);
-            alerts.fire({
-              icon: 'success',
-              html: `Check Complete!<br/>
-                    Total: ${listFormated.length}<br/>
-                    Lives: ${lives.length} | Dies: ${dies.length}`
-            });
-          }
+          // Atualizar user após cada check
+          await getUser();
+
         } catch (error) {
           console.error('Check error:', error);
           setDies(old => [{
             success: false,
             message: error.response?.data?.message || 'Check Error',
             cc,
-            key: Date.now() + index,
+            key: Date.now() + i,
             checkedAt: new Date().toISOString()
           }, ...old]);
         }
-      }, 3000 * index);
-    });
+      }
+
+      setChecking(false);
+      alerts.fire({
+        icon: 'success',
+        title: 'Check Complete!',
+        html: `
+          <div style="text-align: left">
+            <p>Total: ${listFormated.length}</p>
+            <p style="color: #00ff44">Lives: ${lives.length}</p>
+            <p style="color: #ff4444">Dies: ${dies.length}</p>
+            <p>Live Rate: ${((lives.length / listFormated.length) * 100).toFixed(1)}%</p>
+          </div>
+        `
+      });
+
+    } catch (error) {
+      console.error('Check process error:', error);
+      setChecking(false);
+      alerts.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'An error occurred during the check process'
+      });
+    }
   }
 
   // Função para o checker Premium
