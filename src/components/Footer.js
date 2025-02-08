@@ -1,16 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faDiscord,
-  faTelegram,
-  faGithub
-} from '@fortawesome/free-brands-svg-icons';
-import {
   faShieldHalved,
   faGem,
   faCode,
   faServer,
   faLock,
-  faBolt
+  faBolt,
+  faMessage,
+  faGlobe,
+  faLink
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function Footer() {
@@ -65,14 +63,14 @@ export default function Footer() {
         </div>
 
         <div className="footer-social">
-          <a href="#" className="social-link discord">
-            <FontAwesomeIcon icon={faDiscord} />
+          <a href="#" className="social-link">
+            <FontAwesomeIcon icon={faMessage} />
           </a>
-          <a href="#" className="social-link telegram">
-            <FontAwesomeIcon icon={faTelegram} />
+          <a href="#" className="social-link">
+            <FontAwesomeIcon icon={faGlobe} />
           </a>
-          <a href="#" className="social-link github">
-            <FontAwesomeIcon icon={faGithub} />
+          <a href="#" className="social-link">
+            <FontAwesomeIcon icon={faLink} />
           </a>
         </div>
 
