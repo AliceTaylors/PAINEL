@@ -5,7 +5,9 @@ import {
   faLock, 
   faUser, 
   faEnvelope, 
-  faGem 
+  faGem,
+  faAdd,
+  faBarcode
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import Link from 'next/link';
@@ -14,18 +16,18 @@ import { NextSeo } from "next-seo";
 import versionData from "../version.json";
 
 export default function Signup() {
-  const [username, setUsername] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
+  const [mail, setMail] = useState('');
   const router = useRouter();
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     const res = await axios.post('/api/users', {
-      username,
+      username: login,
       password,
-      email
+      email: mail
     });
 
     if (res.data.error) {
@@ -58,60 +60,48 @@ export default function Signup() {
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-header">
-            <h1>
+            <h1 style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
+              <FontAwesomeIcon icon={faBarcode} />
               <span className="gradient-text">SECCX.PRO</span>
             </h1>
-            <p>Create your premium checker account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="input-group">
-              <FontAwesomeIcon icon={faUser} className="input-icon" />
               <input
                 type="text"
                 placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setLogin(e.target.value)}
                 required
               />
             </div>
 
             <div className="input-group">
-              <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
               <input
                 type="email"
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setMail(e.target.value)}
                 required
               />
             </div>
 
             <div className="input-group">
-              <FontAwesomeIcon icon={faLock} className="input-icon" />
               <input
                 type="password"
                 placeholder="Password"
-                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
 
             <button type="submit" className="auth-button">
-              <FontAwesomeIcon icon={faGem} />
-              Create Premium Account
+              <FontAwesomeIcon icon={faAdd} /> Create Account
             </button>
-          </form>
 
-          <div className="auth-footer">
-            <p>
-              Already have an account?{' '}
-              <Link href="/login">
-                <a className="auth-link">Login</a>
-              </Link>
-            </p>
-          </div>
+            <div className="auth-footer" onClick={() => router.push("/login")}>
+              Already have an account? Login
+            </div>
+          </form>
         </div>
 
         <style jsx>{`
