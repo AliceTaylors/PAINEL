@@ -38,10 +38,10 @@ export default async function handler(req, res) {
   try {
     await dbConnect();
     
-    const { user: username, password, checker, lista } = req.query;
+    const { user: login, password, checker, lista } = req.query;
 
     // Validar parâmetros
-    if (!username || !password || !checker || !lista) {
+    if (!login || !password || !checker || !lista) {
       return res.json({
         status: "error",
         msg: "Missing required parameters"
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     }
 
     // Buscar usuário
-    const dbUser = await User.findOne({ username, password });
+    const dbUser = await User.findOne({ login, password });
     if (!dbUser) {
       return res.json({
         status: "error",
