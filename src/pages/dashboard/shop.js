@@ -12,6 +12,9 @@ import {
   faDatabase,
   faCartPlus,
   faFire,
+  faSearch,
+  faShieldHalved,
+  faGem,
 } from "@fortawesome/free-solid-svg-icons";
 import Head from "next/head";
 import Image from "next/image";
@@ -39,11 +42,7 @@ export default function Painel() {
   const router = useRouter();
 
   const getRandomColor = () => {
-    return (
-      "linear-gradient(to left, " +
-      cardColors[Math.floor(Math.random() * cardColors.length)] +
-      ", #111)"
-    );
+    return cardColors[Math.floor(Math.random() * cardColors.length)];
   };
 
   const getUser = async () => {
@@ -57,6 +56,7 @@ export default function Painel() {
 
     setUser(res.data.user);
   };
+
   function shuffle(array) {
     let currentIndex = array.length,
       randomIndex;
@@ -76,6 +76,7 @@ export default function Painel() {
 
     return array;
   }
+
   const getData = async () => {
     const res = await axios.get("/api/cards", {
       headers: { token: window.localStorage.getItem("token") },
@@ -85,10 +86,10 @@ export default function Painel() {
       router.push("/");
     }
 
-    const cardsWithColors = [];
-    res.data.map((card) => {
-      cardsWithColors.push({ ...card, color: getRandomColor() });
-    });
+    const cardsWithColors = res.data.map((card) => ({
+      ...card,
+      color: getRandomColor()
+    }));
 
     setCards(shuffle(cardsWithColors));
   };
@@ -112,13 +113,12 @@ export default function Painel() {
     checkVersion();
   }, []);
 
-  async function handleSearch(e) {
+  const handleSearch = async (e) => {
     setSearchingText("Searching...");
     setCards([]);
-    const id = setTimeout(async () => {
+    setTimeout(async () => {
       const res = await axios.get(
         "/api/cards?q=" + encodeURIComponent(e.target.value),
-
         {
           headers: { token: window.localStorage.getItem("token") },
         }
@@ -127,21 +127,19 @@ export default function Painel() {
       if (cards.length < 1) {
       }
 
-      const cardsWithColors = [];
-      res.data.map((card) => {
-        cardsWithColors.push({ ...card, color: getRandomColor() });
-      });
+      const cardsWithColors = res.data.map((card) => ({
+        ...card,
+        color: getRandomColor()
+      }));
 
       setCards(shuffle(cardsWithColors));
-      setTimeout(() => {
-        if (res.data.length < 1) {
-          setSearchingText("Not found!");
-        }
-      }, 2000);
+      if (res.data.length < 1) {
+        setTimeout(() => setSearchingText("Not found!"), 2000);
+      }
     }, 2000);
-  }
+  };
 
-  async function handleBuyCard(e) {
+  const handleBuyCard = async (e) => {
     e.preventDefault();
 
     const formData = new FormData(e.target);
@@ -173,136 +171,237 @@ export default function Painel() {
 
     alerts.fire({
       icon: "success",
-      html: `<b>PURCHASED CARD: </b><br/> <b>NUMBER:</b> ${res.data.card.number}<br/><b>DETAILS:</b> ${res.data.card.data}<br/><b>PIN:</b> ${res.data.card.pin}<br/>${res.data.card.bin}<br/>PRICE: $${res.data.card.price}`,
+      html: `
+        <div style="background:#111; padding:20px; border-radius:10px; margin-bottom:20px">
+          <h3 style="color:#00ff00; margin-bottom:15px">Card Purchased Successfully!</h3>
+          <div style="text-align:left; color:#fff">
+            <p><b>Number:</b> ${res.data.card.number}</p>
+            <p><b>Details:</b> ${res.data.card.data}</p>
+            <p><b>PIN:</b> ${res.data.card.pin}</p>
+            <p><b>BIN:</b> ${res.data.card.bin}</p>
+            <p><b>Price:</b> $${res.data.card.price}</p>
+          </div>
+        </div>
+      `,
+      background: '#000',
+      confirmButtonColor: '#00ff00'
     });
-  }
+  };
 
   return (
     <>
       <Head>
-        <title>checkercc | CC Shop</title>
+        <title>SECCX.PRO | Premium Card Shop</title>
       </Head>
       {user ? (
         <div className="root" style={{ width: "80%" }}>
           <Header user={user} />
-          <div
-            className="warns"
-            style={{ fontSize: "15px", letterSpacing: 1.05 }}
-          >
-            <div
-              onClick={() => {
-                router.push("/dashboard/wallet");
-              }}
-              style={{
-                color: "#f5f5f5",
-                background: "linear-gradient(to left, greenyellow, #111)",
-              }}
-            >
-              {t("promotion")}
-            </div>
+
+          <div className="shop-hero" style={{
+            background: 'linear-gradient(45deg, #000, #111)',
+            padding: '40px',
+            borderRadius: '20px',
+            marginBottom: '30px',
+            border: '1px solid #222'
+          }}>
+            <h1 style={{
+              fontSize: '2.5em',
+              color: '#00ff00',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px'
+            }}>
+              <FontAwesomeIcon icon={faGem} />
+              Premium Card Shop
+            </h1>
+            <p style={{
+              color: '#888',
+              fontSize: '1.1em',
+              maxWidth: '600px',
+              lineHeight: '1.6'
+            }}>
+              Access our exclusive collection of high-quality cards. All cards are verified and tested before listing.
+            </p>
           </div>
 
-          <br />
           <AccountDetails user={user} />
 
-          <div className="checker products" style={{ marginBottom: "30px" }}>
-            <h2>
-              {" "}
-              <span>
-                <FontAwesomeIcon icon={faCartShopping} /> CC SHOP{" "}
-              </span>
-              <div>
-                <small
-                  style={{
-                    fontSize: "12px",
-                    letterSpacing: 1,
-                    background: "greenyellow",
-                    color: "black",
-                    marginLeft: "10px",
-                    padding: "1px 2px",
-                    borderRadius: "5px",
-                  }}
-                >
-                  High quality databases
-                </small>
+          <div className="shop-features" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '20px',
+            margin: '30px 0'
+          }}>
+            {[
+              { icon: faShieldHalved, title: 'Verified Cards', desc: 'All cards are tested before listing' },
+              { icon: faDatabase, title: 'Fresh Database', desc: 'Updated daily with new cards' },
+              { icon: faFire, title: 'High Success Rate', desc: '95%+ success rate guaranteed' }
+            ].map((feature, i) => (
+              <div key={i} style={{
+                background: '#111',
+                padding: '25px',
+                borderRadius: '15px',
+                border: '1px solid #222'
+              }}>
+                <FontAwesomeIcon icon={feature.icon} style={{ 
+                  color: '#00ff00',
+                  fontSize: '24px',
+                  marginBottom: '15px'
+                }} />
+                <h3 style={{ color: '#fff', marginBottom: '10px' }}>{feature.title}</h3>
+                <p style={{ color: '#888' }}>{feature.desc}</p>
               </div>
-            </h2>
+            ))}
+          </div>
 
-            {cards && (
-              <div
-                className="checker products-list"
-                style={{
-                  fontSize: "13px",
-                  fontWeight: "bolder",
-                  display: "flex",
-                  width: "100%",
-                }}
-              >
-                <div
+          <div className="shop-section" style={{
+            background: '#111',
+            padding: '30px',
+            borderRadius: '20px',
+            border: '1px solid #222'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '30px'
+            }}>
+              <h2 style={{
+                color: '#00ff00',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <FontAwesomeIcon icon={faCartShopping} />
+                Available Cards
+              </h2>
+              <div style={{
+                position: 'relative',
+                width: '300px'
+              }}>
+                <FontAwesomeIcon icon={faSearch} style={{
+                  position: 'absolute',
+                  left: '15px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#666'
+                }} />
+                <input
+                  onChange={handleSearch}
+                  placeholder="Search cards (e.g. #US, platinum)"
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
+                    width: '100%',
+                    padding: '12px 15px 12px 45px',
+                    background: '#0a0a0a',
+                    border: '1px solid #222',
+                    borderRadius: '10px',
+                    color: '#fff',
+                    fontSize: '14px'
                   }}
-                >
-                  <form
-                    className="search"
-                    action=""
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                    }}
-                  >
-                    <div>
-                      <span>{t("searchbykeyword")}:</span>
-                    </div>
-                    <div>
-                      <input
-                        onChange={handleSearch}
-                        placeholder="Search (Ex: #US, #MX, platinum)"
-                        type="text"
-                        name=""
-                        id=""
-                      />
-                    </div>
-                    <div></div>
-                  </form>
+                />
+              </div>
+            </div>
+
+            <div className="cards-grid" style={{
+              display: 'grid',
+              gap: '20px',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))'
+            }}>
+              {cards.length < 1 && (
+                <div style={{
+                  padding: '40px',
+                  textAlign: 'center',
+                  color: '#666',
+                  gridColumn: '1/-1'
+                }}>
+                  {searchingText}
                 </div>
-                {cards.length < 1 && <form>{searchingText}</form>}
-                {cards.map((card) => (
-                  <div className="cardDiv" key={card._id}>
-                    <form style={{}} onSubmit={handleBuyCard}>
-                      <input type="hidden" name="cardId" value={card._id} />{" "}
-                      <Image
-                        width="40px"
-                        alt="card brand"
-                        height={card.number.slice(0, 1) == 4 ? "20px" : "30px"}
-                        src={"/cards/" + card.number.slice(0, 1) + ".png"}
-                      />
-                      <span>
-                        {/*3746327570804757|02|2025|9219 / AMERICAN EXPRESS / CREDIT REWARDS / BANK OF AMERICA UNITED STATES*/}
-                        <FontAwesomeIcon icon={faCreditCard} /> {card.number}{" "}
+              )}
+
+              {cards.map((card) => (
+                <div key={card._id} style={{
+                  background: '#0a0a0a',
+                  borderRadius: '15px',
+                  border: '1px solid #222',
+                  overflow: 'hidden',
+                  transition: 'transform 0.2s',
+                  ':hover': {
+                    transform: 'translateY(-5px)'
+                  }
+                }}>
+                  <div style={{
+                    background: card.color,
+                    padding: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                  }}>
+                    <Image
+                      width="50"
+                      height={card.number.slice(0, 1) == 4 ? "25" : "35"}
+                      alt="card brand"
+                      src={"/cards/" + card.number.slice(0, 1) + ".png"}
+                      style={{ filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }}
+                    />
+                    <div>
+                      <h3 style={{ 
+                        color: '#fff',
+                        fontSize: '1.2em',
+                        marginBottom: '5px'
+                      }}>
+                        {card.number}
+                      </h3>
+                      <p style={{ color: '#eee', fontSize: '0.9em' }}>
                         {card.data}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '20px' }}>
+                    <div style={{
+                      color: '#888',
+                      fontSize: '0.9em',
+                      marginBottom: '15px'
+                    }}>
+                      <FontAwesomeIcon icon={faDatabase} style={{ marginRight: '8px' }} />
+                      {card.bin}
+                    </div>
+
+                    <form onSubmit={handleBuyCard} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <input type="hidden" name="cardId" value={card._id} />
+                      <span style={{
+                        color: '#00ff00',
+                        fontSize: '1.2em',
+                        fontWeight: 'bold'
+                      }}>
+                        ${parseFloat(card.price).toFixed(2)}
                       </span>
-                      <span>
-                        <FontAwesomeIcon icon={faDatabase} /> {card.bin} (Database: HQ-FEBRUARY-18-2024.CSV
-)
-                      </span>
-                      <button
-                        style={{
-                          fontWeight: "normal",
-                          fontSize: "17px",
-                          background: "#000 !important",
-                        }}
-                        type="submit"
-                      >
-                        <FontAwesomeIcon icon={faCartPlus} /> / $
-                        {parseFloat(card.price).toFixed(2)}
+                      <button type="submit" style={{
+                        background: '#00ff00',
+                        color: '#000',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}>
+                        <FontAwesomeIcon icon={faCartPlus} />
+                        Buy Now
                       </button>
                     </form>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <Footer />
@@ -311,7 +410,7 @@ export default function Painel() {
         <ReactLoading
           style={{ margin: "auto" }}
           type={"spinningBubbles"}
-          color={"#f5f5f5"}
+          color={"#00ff00"}
           height={200}
           width={100}
         />
