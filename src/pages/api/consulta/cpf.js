@@ -1,4 +1,4 @@
-import dbConnect from '../../../lib/dbConnect';
+import { MongoClient, ObjectId } from 'mongodb';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -6,9 +6,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const db = await dbConnect();
-
   try {
+    const client = await MongoClient.connect(process.env.MONGODB_URI);
+    const db = client.db(process.env.MONGODB_DB);
+
     const { cpf } = req.body;
     const { token } = req.headers;
     
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
       }
     );
 
+    await client.close();
     return res.json(apiResponse.data);
 
   } catch (error) {
