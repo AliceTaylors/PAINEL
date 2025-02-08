@@ -5,20 +5,7 @@ import Log from "./models/Log";
 import checkerSettings from "../../checkerSettings";
 
 function isAlphaNumeric(str) {
-  var code, i, len;
-
-  for (i = 0, len = str.length; i < len; i++) {
-    code = str.charCodeAt(i);
-    if (
-      !(code > 47 && code < 58) && // numeric (0-9)
-      !(code > 64 && code < 91) && // upper alpha (A-Z)
-      !(code > 96 && code < 123)
-    ) {
-      // lower alpha (a-z)
-      return false;
-    }
-  }
-  return true;
+  return /^[a-zA-Z0-9]+$/.test(str);
 }
 
 export default async function handler(req, res) {
@@ -41,21 +28,23 @@ export default async function handler(req, res) {
       return res.send({ error: "Username must be 16 characters maximum" });
     }
 
-    let user = await User.findOne({ login });
+    const db = global.mongoose.connection.db;
+    let user = await db.collection('users').findOne({ login });
 
     if (user) {
-      return res.send({ error: "User alredy exists!" });
+      return res.send({ error: "User already exists!" });
     }
 
-    const usersWithSameIP = await User.find({
+    const usersWithSameIP = await db.collection('users').find({
       ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-    });
+    }).toArray();
 
-    user = await User.create({
+    // Criar novo usuário
+    user = await db.collection('users').insertOne({
       login,
       password,
       mail,
-      balance: usersWithSameIP.length > 0 ? 0 : checkerSettings.startCredits,
+      balance: usersWithSameIP.length > 0 ? 0 : 5.00, // 5.00 créditos iniciais se for primeiro usuário do IP
       ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
       order: {
         amount: 0,
@@ -70,20 +59,22 @@ export default async function handler(req, res) {
           history_type: "WALLET CREATED",
           data: "We hope you enjoy it all!",
           cost: 0,
+          date: new Date()
         },
       ],
     });
 
-    await Log.create({
+    // Registrar log de criação
+    await db.collection('logs').insertOne({
       date: new Date().toLocaleString("pt-BR", {
         timeZone: "America/Sao_Paulo",
       }),
-      log: `NEW USER: User: ${user.login} Telegram: ${user.mail || "-"}`,
+      log: `NEW USER: User: ${login} Telegram: ${mail || "-"}`,
     });
 
     return res.send({
       success: true,
-      token: createToken({ user: { _id: user._id } }),
+      token: createToken({ user: { _id: user.insertedId } }),
     });
   }
 }
