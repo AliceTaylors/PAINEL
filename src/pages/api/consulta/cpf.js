@@ -1,4 +1,5 @@
 import dbConnect from '../../../utils/dbConnect';
+import mongoose from 'mongoose';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -7,7 +8,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const db = await dbConnect();
+    await dbConnect();
+    const db = mongoose.connection;
 
     const { cpf } = req.body;
     const { token } = req.headers;
@@ -33,7 +35,7 @@ export default async function handler(req, res) {
     }
 
     // Custo da consulta
-    const cost = 1.00;
+    const cost = 2.00;
 
     // Verificar saldo
     if (dbUser.balance < cost) {
