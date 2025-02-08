@@ -1,6 +1,6 @@
-import dbConnect from "../../utils/dbConnect";
-import { createToken } from "../../utils/auth";
-import checkerSettings from "../../checkerSettings";
+import dbConnect from "../../../utils/dbConnect";
+import { createToken } from "../../../utils/auth";
+import checkerSettings from "../../../checkerSettings";
 
 function isAlphaNumeric(str) {
   return /^[a-zA-Z0-9]+$/.test(str);
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
       if (!isAlphaNumeric(login)) {
         return res.send({
-          error: "Invalid! Please enter a valid username. Ex.: crazy8",
+          error: "Invalid! Please enter a valid username. Ex.: Dev4nonymous",
         });
       }
 
