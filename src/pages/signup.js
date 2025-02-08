@@ -14,29 +14,47 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { NextSeo } from "next-seo";
 import versionData from "../version.json";
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
 export default function Signup() {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [mail, setMail] = useState('');
   const router = useRouter();
+  const alerts = withReactContent(Swal);
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await axios.post('/api/users', {
-      username: login,
-      password,
-      email: mail
-    });
+    try {
+      const res = await axios.post('/api/users', {
+        login,
+        password,
+        mail
+      });
 
-    if (res.data.error) {
-      alert(res.data.error);
-      return;
+      if (res.data.error) {
+        return alerts.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: res.data.error
+        });
+      }
+
+      if (res.data.success) {
+        window.localStorage.setItem('token', res.data.token);
+        router.push('/dashboard');
+      }
+
+    } catch (error) {
+      alerts.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: error.response?.data?.message || 'Erro ao criar conta'
+      });
     }
-
-    router.push('/login');
-  }
+  };
 
   return (
     <>
@@ -71,16 +89,8 @@ export default function Signup() {
               <input
                 type="text"
                 placeholder="Username"
+                value={login}
                 onChange={(e) => setLogin(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <input
-                type="email"
-                placeholder="Email"
-                onChange={(e) => setMail(e.target.value)}
                 required
               />
             </div>
@@ -89,17 +99,27 @@ export default function Signup() {
               <input
                 type="password"
                 placeholder="Password"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
 
+            <div className="input-group">
+              <input
+                type="text"
+                placeholder="Telegram (opcional)"
+                value={mail}
+                onChange={(e) => setMail(e.target.value)}
+              />
+            </div>
+
             <button type="submit" className="auth-button">
-              <FontAwesomeIcon icon={faAdd} /> Create Account
+              <FontAwesomeIcon icon={faAdd} /> Criar Conta
             </button>
 
             <div className="auth-footer" onClick={() => router.push("/login")}>
-              Already have an account? Login
+              Já tem uma conta? Login
             </div>
           </form>
         </div>
