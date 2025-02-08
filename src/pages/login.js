@@ -162,46 +162,50 @@ export default function Login() {
           justify-content: center;
           background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
           padding: 20px;
+          position: relative;
+          overflow: hidden;
         }
 
         .auth-container {
-          background: rgba(0,255,68,0.05);
-          padding: 40px;
+          background: rgba(0,255,68,0.03);
+          padding: clamp(20px, 5vw, 40px);
           border-radius: 20px;
           border: 1px solid rgba(0,255,68,0.1);
-          width: 100%;
-          max-width: 400px;
+          width: min(90%, 400px);
           box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+          position: relative;
+          backdrop-filter: blur(10px);
         }
 
         .auth-header {
           text-align: center;
-          margin-bottom: 40px;
+          margin-bottom: clamp(20px, 5vh, 40px);
         }
 
         .gradient-text {
-          font-size: 2.5rem;
+          font-size: clamp(1.8rem, 5vw, 2.5rem);
           background: linear-gradient(45deg, #00ff44, #00cc44);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           font-weight: bold;
           margin-left: 10px;
+          white-space: nowrap;
         }
 
         .auth-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: clamp(15px, 3vh, 20px);
         }
 
         .input-group input {
           width: 100%;
-          padding: 15px;
+          padding: clamp(12px, 2.5vh, 15px);
           border-radius: 12px;
           border: 1px solid #222;
-          background: #111;
+          background: rgba(17, 17, 17, 0.7);
           color: #fff;
-          font-size: 1rem;
+          font-size: clamp(14px, 2vw, 16px);
           transition: all 0.3s ease;
         }
 
@@ -215,9 +219,9 @@ export default function Login() {
           background: linear-gradient(45deg, #00ff44, #00cc44);
           color: #000;
           border: none;
-          padding: 15px;
+          padding: clamp(12px, 2.5vh, 15px);
           border-radius: 12px;
-          font-size: 1.1rem;
+          font-size: clamp(14px, 2vw, 1.1rem);
           font-weight: 600;
           cursor: pointer;
           display: flex;
@@ -225,6 +229,7 @@ export default function Login() {
           justify-content: center;
           gap: 10px;
           transition: all 0.3s ease;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
         .auth-button:hover {
@@ -237,17 +242,77 @@ export default function Login() {
           color: #00ff44;
           cursor: pointer;
           transition: all 0.3s ease;
+          font-size: clamp(14px, 2vw, 16px);
+          padding: clamp(10px, 2vh, 15px);
         }
 
         .auth-footer:hover {
           opacity: 0.8;
+          transform: translateY(-2px);
         }
 
         .status-info {
           text-align: center;
           color: #666;
-          margin-top: 20px;
-          font-size: 0.9rem;
+          margin-top: clamp(15px, 3vh, 20px);
+          font-size: clamp(12px, 1.8vw, 14px);
+        }
+
+        /* Efeitos de fundo */
+        .auth-page::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(circle at 50% 50%, rgba(0,255,68,0.1) 0%, transparent 50%);
+          pointer-events: none;
+        }
+
+        /* Media Queries */
+        @media (max-width: 480px) {
+          .auth-container {
+            padding: 20px;
+            width: 95%;
+          }
+
+          .auth-button {
+            padding: 12px;
+          }
+
+          .gradient-text {
+            font-size: 2rem;
+          }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+          .auth-container {
+            padding: 30px;
+            width: 90%;
+          }
+        }
+
+        @media (min-height: 800px) {
+          .auth-container {
+            margin-bottom: 5vh;
+          }
+        }
+
+        /* Orientação Paisagem em Dispositivos Móveis */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .auth-container {
+            padding: 15px;
+            margin: 10px 0;
+          }
+
+          .auth-header {
+            margin-bottom: 15px;
+          }
+
+          .auth-form {
+            gap: 10px;
+          }
         }
       `}</style>
     </>
