@@ -41,10 +41,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Insufficient balance' });
     }
 
+    // Verificar se a chave da API está configurada
+    if (!process.env.HUB_TOKEN) {
+      console.error('HUB_TOKEN não configurado');
+      return res.status(500).json({ 
+        message: 'Erro de configuração do servidor'
+      });
+    }
+
     try {
       // Fazer requisição à API de consulta
-      const apiResponse = await axios.get(`https://ws.hubdodesenvolvedor.com.br/v2/cadastropf/?cpf=${cpf}&token=${process.env.HUB_TOKEN}`, {
-        timeout: 10000, // 10 segundos timeout
+      const apiUrl = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf=${cpf}&token=${process.env.HUB_TOKEN}`;
+      const apiResponse = await axios.get(apiUrl, {
+        timeout: 30000, // 30 segundos timeout
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -52,9 +61,10 @@ export default async function handler(req, res) {
       });
 
       // Verificar se a resposta é válida
-      if (!apiResponse.data || !apiResponse.data.result) {
-        return res.status(404).json({ 
-          message: 'CPF não encontrado na base de dados'
+      if (!apiResponse.data || apiResponse.data.error) {
+        console.error('API Response:', apiResponse.data);
+        return res.status(400).json({ 
+          message: apiResponse.data?.message || 'CPF não encontrado na base de dados'
         });
       }
 
@@ -80,15 +90,15 @@ export default async function handler(req, res) {
       // Retornar dados da consulta
       return res.status(200).json({
         success: true,
-        data: apiResponse.data,
+        result: apiResponse.data,
         balance: dbUser.balance - cost
       });
 
     } catch (apiError) {
-      console.error('API externa error:', apiError);
+      console.error('API externa error:', apiError.response?.data || apiError.message);
       return res.status(503).json({ 
         message: 'Serviço de consulta temporariamente indisponível',
-        error: apiError.message
+        error: apiError.response?.data?.message || apiError.message
       });
     }
 
