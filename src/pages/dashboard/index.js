@@ -33,21 +33,23 @@ import AccountDetails from '../../components/AccountDetails';
 import Footer from '../../components/Footer';
 import useTranslation from 'next-translate/useTranslation';
 
-// Constantes para os checkers
+// Configurações dos checkers
 const CHECKER_CONFIG = {
   adyen: {
-    liveCost: 0.20,
+    name: 'Adyen Gateway',
+    description: 'For Fullz & Gens',
+    liveCost: 0.50,
     dieCost: 0,
     maxDies: 40,
-    apiUrl: 'https://adyen-api.vercel.app/api/adyen?adyenKey=6e0a949a-44bd-4959-86f5-76dfeea86ba2&cc=',
-    name: 'Adyen Gateway'
+    apiUrl: process.env.API_1_URL
   },
   premium: {
+    name: 'Premium Gateway',
+    description: 'Charged Cards',
     liveCost: 1.00,
     dieCost: 0.10,
     maxDies: 20,
-    apiUrl: 'https://azkabancenter.store/azkabandev.php?usuario=v3non&senha=hardkill]]&testador=2-preauth&lista=',
-    name: 'Premium Stripe Gateway'
+    apiUrl: process.env.API_2_URL
   }
 };
 
@@ -179,6 +181,7 @@ export default function Painel() {
   const [status, setStatus] = useState(null);
   const [premiumList, setPremiumList] = useState(null);
   const [consecutiveDies, setConsecutiveDies] = useState(0);
+  const [checkerType, setCheckerType] = useState('adyen');
 
   const getUser = async () => {
     const res = await axios.get('/api/sessions', {
@@ -451,400 +454,199 @@ export default function Painel() {
   return (
     <>
       <Head>
-        <title>SECCX.PRO | Premium Dashboard</title>
+        <title>SECCX.PRO | Premium Checker</title>
       </Head>
 
       {user ? (
         <div className="root" style={{ width: '80%' }}>
           <Header user={user} />
 
-          <div className="dashboard-hero" style={{
-            background: 'linear-gradient(135deg, #000 0%, #111 100%)',
-            padding: '40px',
+          <div style={{
+            background: 'linear-gradient(145deg, #111 0%, #0a0a0a 100%)',
             borderRadius: '20px',
-            marginBottom: '30px',
+            padding: '30px',
             border: '1px solid #222',
-            position: 'relative',
-            overflow: 'hidden'
+            marginBottom: '30px'
           }}>
             <div style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: '300px',
-              height: '300px',
-              background: 'radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%)',
-              filter: 'blur(60px)',
-              transform: 'translate(30%, -30%)'
-            }} />
-
-            <h1 style={{
-              fontSize: '2.8em',
-              background: 'linear-gradient(to right, #fff, #00ff00)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: '20px',
               display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              gap: '15px'
+              marginBottom: '30px'
             }}>
-              <FontAwesomeIcon icon={faRocket} />
-              Premium Checker
-            </h1>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '20px',
-              marginTop: '30px'
-            }}>
-              {[
-                { icon: faBolt, title: 'High Speed', value: '0.8s/check' },
-                { icon: faShieldHalved, title: 'Success Rate', value: '95%+' },
-                { icon: faServer, title: 'Server Status', value: 'Online' },
-                { icon: faChartLine, title: 'Daily Checks', value: '10k+' }
-              ].map((stat, i) => (
-                <div key={i} style={{
-                  background: 'rgba(0,255,0,0.05)',
-                  padding: '20px',
-                  borderRadius: '15px',
-                  border: '1px solid rgba(0,255,0,0.1)',
+              <div>
+                <h1 style={{
+                  fontSize: '2em',
+                  color: '#00ff00',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '15px'
+                  gap: '10px'
                 }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    background: 'rgba(0,255,0,0.1)',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <FontAwesomeIcon icon={stat.icon} style={{ color: '#00ff00', fontSize: '24px' }} />
-                  </div>
-                  <div>
-                    <h3 style={{ color: '#888', fontSize: '0.9em', marginBottom: '5px' }}>{stat.title}</h3>
-                    <div style={{ color: '#fff', fontSize: '1.2em', fontWeight: 'bold' }}>{stat.value}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <AccountDetails user={user} />
-
-          <div className="checker-grid" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-            gap: '30px',
-            marginTop: '30px'
-          }}>
-            {/* Checker Standard */}
-            <div className="checker-card" style={{
-              background: 'linear-gradient(135deg, #111 0%, #000 100%)',
-              borderRadius: '20px',
-              padding: '30px',
-              border: '1px solid #222',
-              position: 'relative'
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: '#00ff00',
-                color: '#000',
-                padding: '5px 10px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                ${CHECKER_CONFIG.adyen.liveCost}/live
+                  <FontAwesomeIcon icon={faCreditCard} />
+                  {checkerType === 'premium' ? 'Premium' : 'Standard'} Checker
+                </h1>
+                <p style={{ color: '#666', marginTop: '5px' }}>
+                  {CHECKER_CONFIG[checkerType].description}
+                </p>
               </div>
 
-              <h2 style={{
-                color: '#00ff00',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '20px'
+              <div style={{
+                background: '#0a0a0a',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                border: '1px solid #222'
               }}>
-                <FontAwesomeIcon icon={faCreditCard} />
-                Standard Checker
-                <small style={{
-                  fontSize: '14px',
-                  opacity: 0.7,
-                  fontWeight: 'normal',
-                  marginLeft: '10px'
-                }}>
-                  {CHECKER_CONFIG.adyen.name}
-                </small>
-              </h2>
+                <div style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                  ${CHECKER_CONFIG[checkerType].liveCost}/live
+                </div>
+                {checkerType === 'premium' && (
+                  <div style={{ color: '#666', fontSize: '0.9em' }}>
+                    ${CHECKER_CONFIG[checkerType].dieCost}/die
+                  </div>
+                )}
+              </div>
+            </div>
 
-              <form onSubmit={handleCheck} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px'
-              }}>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '20px'
+            }}>
+              {['adyen', 'premium'].map(type => (
+                <button
+                  key={type}
+                  onClick={() => setCheckerType(type)}
+                  style={{
+                    background: checkerType === type ? 
+                      'linear-gradient(45deg, #00ff00, #00cc00)' : '#111',
+                    color: checkerType === type ? '#000' : '#fff',
+                    border: `1px solid ${checkerType === type ? '#00ff00' : '#222'}`,
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {CHECKER_CONFIG[type].name}
+                </button>
+              ))}
+            </div>
+
+            {!isChecking ? (
+              <form onSubmit={handleCheck}>
                 <textarea
                   onChange={(e) => setList(e.target.value)}
-                  placeholder="Format: 5054105415045405|00|2025|000"
+                  placeholder="Format: 4532117190458043|11|2027|475"
                   style={{
+                    width: '100%',
+                    height: '200px',
                     background: '#0a0a0a',
                     border: '1px solid #222',
                     borderRadius: '10px',
                     padding: '15px',
                     color: '#fff',
-                    height: '150px',
-                    resize: 'none',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    resize: 'vertical',
+                    marginBottom: '20px'
                   }}
                 />
-                <button style={{
-                  background: 'linear-gradient(to right, #00ff00, #00cc00)',
-                  color: '#000',
-                  border: 'none',
-                  padding: '15px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  fontSize: '16px',
-                  transition: 'all 0.2s'
-                }}>
+
+                {checkerType === 'premium' && (
+                  <div style={{
+                    background: 'rgba(255,0,0,0.1)',
+                    border: '1px solid rgba(255,0,0,0.2)',
+                    color: '#ff4444',
+                    padding: '10px 15px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    marginBottom: '20px'
+                  }}>
+                    ⚠️ Account will be blocked after {CHECKER_CONFIG.premium.maxDies} consecutive dies
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(45deg, #00ff00, #00cc00)',
+                    color: '#000',
+                    border: 'none',
+                    padding: '15px',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px'
+                  }}
+                >
                   <FontAwesomeIcon icon={faRocket} />
                   Start Checking
                 </button>
               </form>
-
-              {isChecking && (
+            ) : (
+              <div style={{
+                marginTop: '20px',
+                padding: '20px',
+                background: '#0a0a0a',
+                borderRadius: '10px',
+                border: '1px solid #222'
+              }}>
                 <div style={{
-                  marginTop: '20px',
-                  padding: '20px',
-                  background: '#0a0a0a',
-                  borderRadius: '10px',
-                  border: '1px solid #222'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '15px'
-                  }}>
-                    <span style={{ color: '#00ff00' }}>Lives: {lives.length}</span>
-                    <span style={{ color: '#ff4444' }}>Dies: {dies.length}</span>
-                  </div>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {[...lives, ...dies].map((card, index) => (
-                      <div key={index} style={{
-                        padding: '15px',
-                        background: card.success ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
-                        borderRadius: '8px',
-                        marginBottom: '10px',
-                        fontSize: '14px'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: '8px'
-                        }}>
-                          <span style={{ color: card.success ? '#00ff00' : '#ff4444' }}>
-                            {card.card}
-                          </span>
-                          <span style={{ color: '#888' }}>
-                            {card.details.brand} | {card.details.type}
-                          </span>
-                        </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: '#666',
-                          display: 'flex',
-                          justifyContent: 'space-between'
-                        }}>
-                          <span>{card.details.bank}</span>
-                          <span>{card.details.country}</span>
-                          <span>{card.details.level}</span>
-                        </div>
-                        <div style={{
-                          marginTop: '5px',
-                          color: card.success ? '#00ff00' : '#ff4444'
-                        }}>
-                          {card.message}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Premium Checker */}
-            <div className="checker-card premium" style={{
-              background: 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)',
-              borderRadius: '20px',
-              padding: '30px',
-              border: '1px solid #333',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: '#ffd700',
-                color: '#000',
-                padding: '5px 10px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                ${CHECKER_CONFIG.premium.liveCost}/live • ${CHECKER_CONFIG.premium.dieCost}/die
-              </div>
-
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '200px',
-                height: '200px',
-                background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%)',
-                filter: 'blur(40px)',
-                transform: 'translate(30%, -30%)'
-              }} />
-
-              <h2 style={{
-                background: 'linear-gradient(to right, #ffd700, #ffa500)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '20px'
-              }}>
-                <FontAwesomeIcon icon={faGem} />
-                Premium Checker
-                <small style={{
-                  fontSize: '14px',
-                  opacity: 0.7,
-                  fontWeight: 'normal',
-                  marginLeft: '10px',
-                  color: '#fff'
-                }}>
-                  {CHECKER_CONFIG.premium.name}
-                </small>
-              </h2>
-
-              <form onSubmit={handlePremiumCheck} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px'
-              }}>
-                <textarea
-                  onChange={(e) => setPremiumList(e.target.value)}
-                  placeholder="Format: 5054105415045405|00|2025|000"
-                  style={{
-                    background: '#0a0a0a',
-                    border: '1px solid #333',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    color: '#fff',
-                    height: '150px',
-                    resize: 'none',
-                    fontSize: '14px'
-                  }}
-                />
-                <button style={{
-                  background: 'linear-gradient(to right, #ffd700, #ffa500)',
-                  color: '#000',
-                  border: 'none',
-                  padding: '15px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  fontSize: '16px',
-                  transition: 'all 0.2s'
+                  justifyContent: 'space-between',
+                  marginBottom: '15px'
                 }}>
-                  <FontAwesomeIcon icon={faGem} />
-                  Start Premium Check
-                </button>
-              </form>
-
-              {isChecking && (
-                <div style={{
-                  marginTop: '20px',
-                  padding: '20px',
-                  background: '#0a0a0a',
-                  borderRadius: '10px',
-                  border: '1px solid #333'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '15px'
-                  }}>
-                    <span style={{ color: '#ffd700' }}>Lives: {lives.length}</span>
-                    <span style={{ color: '#ff4444' }}>Dies: {dies.length}</span>
-                  </div>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {[...lives, ...dies].map((card, index) => (
-                      <div key={index} style={{
-                        padding: '15px',
-                        background: card.success ? 'rgba(255,215,0,0.1)' : 'rgba(255,0,0,0.1)',
-                        borderRadius: '8px',
-                        marginBottom: '10px',
-                        fontSize: '14px'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: '8px'
-                        }}>
-                          <span style={{ color: card.success ? '#ffd700' : '#ff4444' }}>
-                            {card.card}
-                          </span>
-                          <span style={{ color: '#888' }}>
-                            {card.details.brand} | {card.details.type}
-                          </span>
-                        </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: '#666',
-                          display: 'flex',
-                          justifyContent: 'space-between'
-                        }}>
-                          <span>{card.details.bank}</span>
-                          <span>{card.details.country}</span>
-                          <span>{card.details.level}</span>
-                        </div>
-                        <div style={{
-                          marginTop: '5px',
-                          color: card.success ? '#ffd700' : '#ff4444'
-                        }}>
-                          {card.message}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <span style={{ color: '#00ff00' }}>Lives: {lives.length}</span>
+                  <span style={{ color: '#ff4444' }}>Dies: {dies.length}</span>
                 </div>
-              )}
-
-              <small style={{
-                display: 'block',
-                textAlign: 'center',
-                color: '#666',
-                marginTop: '10px',
-                fontSize: '12px'
-              }}>
-                ⚠️ Account will be restricted after {CHECKER_CONFIG.premium.maxDies} consecutive failed checks
-              </small>
-            </div>
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {[...lives, ...dies].map((card, index) => (
+                    <div key={index} style={{
+                      padding: '15px',
+                      background: card.success ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
+                      borderRadius: '8px',
+                      marginBottom: '10px',
+                      fontSize: '14px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px'
+                      }}>
+                        <span style={{ color: card.success ? '#00ff00' : '#ff4444' }}>
+                          {card.card}
+                        </span>
+                        <span style={{ color: '#888' }}>
+                          {card.details.brand} | {card.details.type}
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#666',
+                        display: 'flex',
+                        justifyContent: 'space-between'
+                      }}>
+                        <span>{card.details.bank}</span>
+                        <span>{card.details.country}</span>
+                        <span>{card.details.level}</span>
+                      </div>
+                      <div style={{
+                        marginTop: '5px',
+                        color: card.success ? '#00ff00' : '#ff4444'
+                      }}>
+                        {card.message}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <Footer />
