@@ -1,6 +1,6 @@
-import dbConnect from "../../../utils/dbConnect";
-import { createToken } from "../../../utils/auth";
-import checkerSettings from "../../../checkerSettings";
+import dbConnect from "../../utils/dbConnect";
+import { createToken } from "../../utils/auth";
+import checkerSettings from "../../checkerSettings";
 
 function isAlphaNumeric(str) {
   return /^[a-zA-Z0-9]+$/.test(str);
@@ -38,16 +38,13 @@ export default async function handler(req, res) {
         ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
       }).toArray();
 
-      // Criar novo usuário
+      // Criar novo usuário com estrutura original
       const newUser = await db.collection('users').insertOne({
         login,
         password,
         mail,
         balance: usersWithSameIP.length > 0 ? 0 : checkerSettings.startCredits,
         ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-        sessions: [{
-          token: createToken({ user: { _id: null } }) // Token temporário
-        }],
         order: {
           amount: 0,
           complete: false,
@@ -66,17 +63,8 @@ export default async function handler(req, res) {
         ],
       });
 
-      // Atualizar token com o ID correto
+      // Criar token com o ID correto
       const token = createToken({ user: { _id: newUser.insertedId } });
-      
-      await db.collection('users').updateOne(
-        { _id: newUser.insertedId },
-        { 
-          $set: {
-            'sessions.0.token': token
-          }
-        }
-      );
 
       // Registrar log de criação
       await db.collection('logs').insertOne({
