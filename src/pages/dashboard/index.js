@@ -486,7 +486,20 @@ export default function Painel() {
                     <span style={{ color: '#00ff00' }}>Lives: {lives.length}</span>
                     <span style={{ color: '#ff4444' }}>Dies: {dies.length}</span>
                   </div>
-                  {/* Resto do código de checking... */}
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {[...lives, ...dies].map((card, index) => (
+                      <div key={index} style={{
+                        padding: '10px',
+                        background: card.success ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
+                        borderRadius: '8px',
+                        marginBottom: '10px',
+                        fontSize: '14px',
+                        color: card.success ? '#00ff00' : '#ff4444'
+                      }}>
+                        {card.card} - {card.message}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -497,9 +510,127 @@ export default function Painel() {
               borderRadius: '20px',
               padding: '30px',
               border: '1px solid #333',
-              position: 'relative'
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              {/* Similar structure to standard checker but with premium styling */}
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: '#ffd700',
+                color: '#000',
+                padding: '5px 10px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                $0.10/check
+              </div>
+
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '200px',
+                height: '200px',
+                background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%)',
+                filter: 'blur(40px)',
+                transform: 'translate(30%, -30%)'
+              }} />
+
+              <h2 style={{
+                background: 'linear-gradient(to right, #ffd700, #ffa500)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '20px'
+              }}>
+                <FontAwesomeIcon icon={faGem} />
+                Premium Checker
+                <small style={{
+                  fontSize: '14px',
+                  opacity: 0.7,
+                  fontWeight: 'normal',
+                  marginLeft: '10px',
+                  color: '#fff'
+                }}>
+                  Stripe Gateway
+                </small>
+              </h2>
+
+              <form onSubmit={handlePremiumCheck} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                <textarea
+                  onChange={(e) => setPremiumList(e.target.value)}
+                  placeholder="Format: 5054105415045405|00|2025|000"
+                  style={{
+                    background: '#0a0a0a',
+                    border: '1px solid #333',
+                    borderRadius: '10px',
+                    padding: '15px',
+                    color: '#fff',
+                    height: '150px',
+                    resize: 'none',
+                    fontSize: '14px'
+                  }}
+                />
+                <button style={{
+                  background: 'linear-gradient(to right, #ffd700, #ffa500)',
+                  color: '#000',
+                  border: 'none',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  fontSize: '16px',
+                  transition: 'all 0.2s'
+                }}>
+                  <FontAwesomeIcon icon={faGem} />
+                  Start Premium Check
+                </button>
+              </form>
+
+              {isChecking && (
+                <div style={{
+                  marginTop: '20px',
+                  padding: '20px',
+                  background: '#0a0a0a',
+                  borderRadius: '10px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '15px'
+                  }}>
+                    <span style={{ color: '#ffd700' }}>Lives: {lives.length}</span>
+                    <span style={{ color: '#ff4444' }}>Dies: {dies.length}</span>
+                  </div>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {[...lives, ...dies].map((card, index) => (
+                      <div key={index} style={{
+                        padding: '10px',
+                        background: card.success ? 'rgba(255,215,0,0.1)' : 'rgba(255,0,0,0.1)',
+                        borderRadius: '8px',
+                        marginBottom: '10px',
+                        fontSize: '14px',
+                        color: card.success ? '#ffd700' : '#ff4444'
+                      }}>
+                          {card.card} - {card.message}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
