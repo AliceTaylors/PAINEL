@@ -1,3 +1,4 @@
+import dbConnect from '../../../lib/dbConnect';
 import User from '../../../models/User';
 import { checkToken } from '../../../utils/auth';
 import axios from 'axios';
@@ -6,6 +7,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
+
+  await dbConnect();
 
   try {
     const { cpf } = req.body;
@@ -39,15 +42,23 @@ export default async function handler(req, res) {
     }
 
     // Atualizar saldo e logs do usuário
-    await user.updateOne({
-      logs: [{
-        history_type: 'CONSULTA CPF',
-        cost: -cost,
-        data: `CPF: ${cpf}`,
-        date: new Date()
-      }, ...user.logs],
-      $inc: { balance: -cost }
-    });
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $push: {
+          logs: {
+            $each: [{
+              history_type: 'CONSULTA CPF',
+              cost: -cost,
+              data: `CPF: ${cpf}`,
+              date: new Date()
+            }],
+            $position: 0
+          }
+        },
+        $inc: { balance: -cost }
+      }
+    );
 
     return res.json(apiResponse.data);
 
