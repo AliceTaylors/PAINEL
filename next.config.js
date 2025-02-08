@@ -14,4 +14,8 @@ module.exports = nextTranslate({
       'qrickit.com',
     ],
   },
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    config.resolve.modules.push(__dirname + '/src')
+    return config
+  }
 });
