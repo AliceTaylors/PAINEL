@@ -36,11 +36,12 @@ import Footer from "../../components/Footer";
 import useTranslation from "next-translate/useTranslation";
 import QRCode from "react-qr-code";
 
+const alerts = withReactContent(Swal);
+
 const modalStyles = {
   overlay: {
     background: "rgba(0,0,0,0.8)",
   },
-
   content: {
     top: "50%",
     background: "#000",
@@ -55,81 +56,20 @@ const modalStyles = {
   },
 };
 
-// Make sure to bind modal to your appElement (https://reactcommunity.org/react-modal/accessibility/)
 Modal.setAppElement("#__next");
 
 export default function Wallet() {
-  const [modalIsOpen, setIsOpen] = useState(false);
-  const [logsNumber, setLogsNumber] = useState(5);
-  const router = useRouter();
-
-  const [redeemCode, setRedeemCode] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("WAITING");
-  const alerts = withReactContent(Swal);
   const [user, setUser] = useState(null);
-  const [balance, setBalance] = useState(5);
-  const [counter, setCounter] = useState(30);
-
-  const [currency, setCurrency] = useState("BTC");
-
-  const { t, lang } = useTranslation("dashboard");
-
-  const [amount, setAmount] = useState('');
   const [order, setOrder] = useState(null);
+  const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redeemCode, setRedeemCode] = useState("");
+  const [counter, setCounter] = useState(30);
+  const [paymentStatus, setPaymentStatus] = useState("...");
+  const router = useRouter();
+  const { t } = useTranslation("common");
 
-  const [paymentMethod, setPaymentMethod] = useState("BTC");
-
-  const paymentMethods = {
-    BTC: {
-      name: "Bitcoin",
-      icon: faBitcoinSign,
-      color: "#f7931a",
-      min: 5
-    },
-    BNB: {
-      name: "Binance Coin",
-      icon: faBinance,
-      color: "#F3BA2F",
-      min: 5
-    },
-    LTC: {
-      name: "Litecoin", 
-      icon: faLtc,
-      color: "#345d9d",
-      min: 5
-    },
-    USDT: {
-      name: "Tether",
-      icon: faUsdt, 
-      color: "#26A17B",
-      min: 5
-    },
-    PIX: {
-      name: "PIX",
-      icon: faPix,
-      color: "#32BCAD",
-      min: 5
-    }
-  };
-
-  async function getTransaction() {
-    const resTransaction = await axios.get("/api/transactions", {
-      headers: { token: window.localStorage.getItem("token") },
-    });
-
-    setPaymentStatus(resTransaction.data.status);
-
-    if (resTransaction.data.status === "completed") {
-      alerts.fire({
-        icon: "success",
-        text: "Deposit completed successfully!",
-      });
-      setPaymentStatus("completed");
-      return;
-    }
-  }
-  const getUser = async () => {
+  async function getUser() {
     const res = await axios.get("/api/sessions", {
       headers: { token: window.localStorage.getItem("token") },
     });
@@ -140,18 +80,7 @@ export default function Wallet() {
     }
 
     setUser(res.data.user);
-    getTransaction();
-
-    if (parseFloat(res.data.user.order.amount) > 4) {
-      getTransaction();
-    } else {
-    }
-  };
-  useEffect(() => {
-    getUser();
-    const interval = setInterval(getOrder, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  }
 
   const getOrder = async () => {
     const res = await axios.get('/api/transactions', {
@@ -249,20 +178,22 @@ export default function Wallet() {
     getUser();
     setRedeemCode('');
   }
+
+  useEffect(() => {
+    getUser();
+    getOrder();
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCounter((prevCounter) => prevCounter - 1);
     }, 1000);
 
-    // Limpa o intervalo quando o componente é desmontado
     return () => clearInterval(interval);
   }, []);
 
-  // Verifica se o contador chegou a zero
   useEffect(() => {
     if (counter === 0) {
-      // Faça algo quando o contador chegar a zero
-      // Por exemplo, exiba uma mensagem ou execute uma ação
       setCounter(30);
       handleSync();
     }
@@ -277,60 +208,62 @@ export default function Wallet() {
         <div className="root" style={{ width: "80%" }}>
           <Header user={user} />
 
-          <div className="wallet-container">
-            <div className="balance-card">
-              <FontAwesomeIcon icon={faWallet} className="card-icon" />
-              <div className="balance-info">
-                <h2>Current Balance</h2>
-                <span className="balance-amount">${user.balance?.toFixed(2)}</span>
-              </div>
-              <button className="sync-button" onClick={handleSync}>
-                <FontAwesomeIcon icon={faSync} spin={counter === 30} />
-                <span>{counter}s</span>
-              </button>
-            </div>
+          <div className="recharge">
+            <div className="recharge-history">
+              <h2>
+                <FontAwesomeIcon icon={faWallet} /> Wallet
+              </h2>
 
-            <div className="wallet-sections">
-              <div className="wallet-section">
-                <div className="section-header">
-                  <FontAwesomeIcon icon={faGift} />
-                  <h2>Redeem Code</h2>
+              <div className="balance-card">
+                <div className="balance-info">
+                  <h3>Current Balance</h3>
+                  <span className="balance-amount">${user.balance?.toFixed(2)}</span>
                 </div>
-                <form onSubmit={handleRedeem} className="redeem-form">
-                  <input
-                    type="text"
-                    value={redeemCode}
-                    onChange={(e) => setRedeemCode(e.target.value)}
-                    placeholder="Enter your code"
-                    required
-                  />
-                  <button type="submit">
-                    <FontAwesomeIcon icon={faCoins} />
-                    Redeem
-                  </button>
-                </form>
+                <button className="sync-button" onClick={handleSync}>
+                  <FontAwesomeIcon icon={faSync} spin={counter === 30} />
+                  <span>{counter}s</span>
+                </button>
               </div>
 
-              <div className="wallet-section">
-                <div className="section-header">
-                  <FontAwesomeIcon icon={faHistory} />
-                  <h2>Transaction History</h2>
+              <div className="wallet-sections">
+                <div className="redeem-section">
+                  <h3>
+                    <FontAwesomeIcon icon={faGift} /> Redeem Code
+                  </h3>
+                  <form onSubmit={handleRedeem}>
+                    <input
+                      type="text"
+                      value={redeemCode}
+                      onChange={(e) => setRedeemCode(e.target.value)}
+                      placeholder="Enter your code"
+                      required
+                    />
+                    <button type="submit">
+                      <FontAwesomeIcon icon={faCoins} /> Redeem
+                    </button>
+                  </form>
                 </div>
-                <div className="history-list">
-                  {user.logs?.slice(0, 10).map((log, index) => (
-                    <div key={index} className="history-item">
-                      <FontAwesomeIcon 
-                        icon={faMoneyBillWave}
-                        className={log.cost > 0 ? 'income' : 'expense'}
-                      />
-                      <div className="history-details">
-                        <span className="history-type">{log.history_type}</span>
-                        <span className="history-amount">
-                          {log.cost > 0 ? '+' : ''}{log.cost?.toFixed(2)}
-                        </span>
+
+                <div className="history-section">
+                  <h3>
+                    <FontAwesomeIcon icon={faHistory} /> Transaction History
+                  </h3>
+                  <div className="history-list">
+                    {user.logs?.slice(0, 10).map((log, index) => (
+                      <div key={index} className="history-item">
+                        <FontAwesomeIcon 
+                          icon={faMoneyBillWave}
+                          className={log.cost > 0 ? 'income' : 'expense'}
+                        />
+                        <div className="history-details">
+                          <span className="history-type">{log.history_type}</span>
+                          <span className="history-amount">
+                            {log.cost > 0 ? '+' : ''}{log.cost?.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -341,10 +274,18 @@ export default function Wallet() {
       )}
 
       <style jsx>{`
-        .wallet-container {
+        .recharge {
           padding: 20px;
           max-width: 1200px;
           margin: 0 auto;
+        }
+
+        h2 {
+          color: #00ff44;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
         .balance-card {
@@ -352,22 +293,13 @@ export default function Wallet() {
           border: 1px solid rgba(0,255,68,0.1);
           border-radius: 20px;
           padding: 30px;
-          display: flex;
-          align-items: center;
-          gap: 20px;
           margin-bottom: 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
 
-        .card-icon {
-          font-size: 2.5rem;
-          color: #00ff44;
-        }
-
-        .balance-info {
-          flex: 1;
-        }
-
-        .balance-info h2 {
+        .balance-info h3 {
           color: #888;
           margin: 0 0 10px 0;
           font-size: 1.1rem;
@@ -403,27 +335,22 @@ export default function Wallet() {
           gap: 20px;
         }
 
-        .wallet-section {
+        .redeem-section, .history-section {
           background: rgba(0,255,68,0.03);
           border: 1px solid rgba(0,255,68,0.1);
           border-radius: 20px;
           padding: 25px;
         }
 
-        .section-header {
+        h3 {
+          color: #00ff44;
+          margin: 0 0 20px 0;
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-bottom: 20px;
-          color: #00ff44;
         }
 
-        .section-header h2 {
-          margin: 0;
-          font-size: 1.3rem;
-        }
-
-        .redeem-form {
+        form {
           display: flex;
           gap: 10px;
         }
@@ -435,12 +362,6 @@ export default function Wallet() {
           border: 1px solid #222;
           background: rgba(17,17,17,0.7);
           color: #fff;
-          font-size: 0.95rem;
-        }
-
-        input:focus {
-          outline: none;
-          border-color: #00ff44;
         }
 
         button {
@@ -478,10 +399,6 @@ export default function Wallet() {
           transition: all 0.3s ease;
         }
 
-        .history-item:hover {
-          transform: translateX(5px);
-        }
-
         .history-details {
           flex: 1;
           display: flex;
@@ -491,7 +408,6 @@ export default function Wallet() {
 
         .history-type {
           color: #888;
-          font-size: 0.9rem;
         }
 
         .history-amount {
@@ -508,21 +424,17 @@ export default function Wallet() {
         }
 
         @media (max-width: 768px) {
-          .wallet-container {
+          .recharge {
             padding: 15px;
           }
 
           .balance-card {
             flex-direction: column;
             text-align: center;
-            padding: 20px;
+            gap: 20px;
           }
 
-          .balance-amount {
-            font-size: 1.8rem;
-          }
-
-          .redeem-form {
+          form {
             flex-direction: column;
           }
 
@@ -531,12 +443,8 @@ export default function Wallet() {
             justify-content: center;
           }
 
-          .history-item {
-            padding: 12px;
-          }
-
-          .history-type {
-            font-size: 0.8rem;
+          .wallet-sections {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
