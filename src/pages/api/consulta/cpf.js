@@ -1,4 +1,4 @@
-import { connectToDatabase } from '../../../utils/mongodb';
+import dbConnect from '../utils/dbConnect';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -6,8 +6,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
+  await dbConnect();
+
   try {
-    const { db } = await connectToDatabase();
     const { cpf } = req.body;
     const { token } = req.headers;
     
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
       return res.send({ error: "Not allowed" });
     }
 
-    const dbUser = await db.collection('users').findOne({ 
+    const dbUser = await global.mongoose.connection.db.collection('users').findOne({ 
       'sessions.token': token 
     });
 
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
       }
 
       // Atualizar saldo e logs do usuário
-      await db.collection('users').updateOne(
+      await global.mongoose.connection.db.collection('users').updateOne(
         { _id: dbUser._id },
         {
           $push: {
