@@ -1,5 +1,4 @@
-import dbConnect from '@/lib/dbConnect';
-import mongoose from 'mongoose';
+import { connectToDatabase } from '../../../utils/mongodb';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -8,8 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    await dbConnect();
-    const db = mongoose.connection;
+    const { db } = await connectToDatabase();
 
     const { cpf } = req.body;
     const { token } = req.headers;
