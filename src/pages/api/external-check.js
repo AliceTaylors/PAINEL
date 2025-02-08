@@ -5,7 +5,7 @@ import crypto from 'crypto';
 // Conexão MongoDB
 const dbConnect = async () => {
   if (mongoose.connections[0].readyState) return;
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(process.env.MONGODB);
 };
 
 // Modelo User
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check if user is blocked for this checker
+    // Check if user is blocked
     if (isUserBlocked(dbUser, checker)) {
       return res.json({
         status: "error",
@@ -87,34 +87,24 @@ export default async function handler(req, res) {
       });
     }
 
-    // Format card data
-    const [cc, month, year, cvv] = lista.split('|');
-    if (!cc || !month || !year || !cvv) {
-      return res.json({
-        status: "error",
-        msg: "Invalid card format. Use: CC|MM|YYYY|CVV"
-      });
-    }
-
     // Configurações específicas do checker
-    const checkerConfig = {
+    const config = {
       premium: {
         apiUrl: process.env.API_2_URL,
         liveCost: -1.0,
         dieCost: -0.1,
-        minBalance: 0.1,
+        minBalance: 1.0,
         maxDies: 20
       },
       adyen: {
         apiUrl: process.env.API_1_URL,
-        liveCost: -0.2,
+        liveCost: -0.5,
         dieCost: 0,
         minBalance: 0.5,
         maxDies: 40
       }
-    };
+    }[checker];
 
-    const config = checkerConfig[checker];
     if (!config) {
       return res.json({
         status: "error",
@@ -126,38 +116,33 @@ export default async function handler(req, res) {
     if (dbUser.balance < Math.abs(config.minBalance)) {
       return res.json({
         status: "error",
-        msg: "Insufficient funds"
+        msg: `Insufficient funds. Minimum balance required: $${config.minBalance}`
       });
     }
 
     // Make API request
     const API_RESULT = await axios.get(config.apiUrl + lista);
 
-    // Handle API error
+    // Handle error responses
     if (API_RESULT.data.error) {
+      return res.json({
+        status: "error",
+        msg: API_RESULT.data.retorno
+      });
+    }
+
+    // Handle die responses
+    if (!API_RESULT.data.success) {
       const consecutiveDies = getConsecutiveDies(dbUser.logs, checker);
       
-      // Check if user should be blocked
       if (consecutiveDies >= config.maxDies) {
         const blockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        
         await dbUser.updateOne({
-          logs: [
-            {
-              history_type: `${checker.toUpperCase()} DIE`,
-              cost: config.dieCost,
-              data: lista,
-            },
-            ...dbUser.logs,
-          ],
-          $inc: { balance: config.dieCost },
           [`${checker}_block_until`]: blockUntil
         });
-
         return res.json({
           status: "error",
-          msg: `Account blocked from ${checker} checker for 24 hours due to ${config.maxDies} consecutive dies`,
-          balance: (dbUser.balance + config.dieCost).toFixed(2)
+          msg: `Too many consecutive dies. You are blocked from using ${checker} checker for 24 hours.`
         });
       }
 
@@ -180,15 +165,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Handle successful check
+    // Handle live responses
     if (API_RESULT.data.success) {
-      if (dbUser.balance < Math.abs(config.liveCost)) {
-        return res.json({
-          status: "error",
-          msg: "Insufficient funds for live check"
-        });
-      }
-
       await dbUser.updateOne({
         logs: [
           {
