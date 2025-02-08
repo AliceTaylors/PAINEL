@@ -145,6 +145,8 @@ export default function ApiDocs() {
             </div>
           </div>
         </div>
+
+        <Footer />
       </div>
 
       <style jsx>{`
@@ -152,12 +154,21 @@ export default function ApiDocs() {
           min-height: 100vh;
           background: #000;
           color: #fff;
+          display: flex;
+          flex-direction: column;
         }
 
         .container {
           max-width: 1200px;
           margin: 0 auto;
           padding: 2rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .content {
+          flex: 1;
         }
 
         .api-header {
