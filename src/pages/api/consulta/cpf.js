@@ -1,4 +1,4 @@
-import dbConnect from '../../../utils/dbConnect';
+import dbConnect from '@/lib/dbConnect';
 import mongoose from 'mongoose';
 import axios from 'axios';
 
