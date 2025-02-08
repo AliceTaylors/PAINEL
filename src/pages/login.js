@@ -1,4 +1,4 @@
-import { faAdd, faBarcode } from "@fortawesome/free-solid-svg-icons";
+import { faAdd, faBarcode, faLock } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import axios from "axios";
 import Head from "next/head";
@@ -8,7 +8,6 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import versionData from "../version.json";
 import { NextSeo } from "next-seo";
-import Link from 'next/link';
 
 export default function Login() {
   const [login, setLogin] = useState(null);
@@ -107,61 +106,52 @@ export default function Login() {
       <Head>
         <title>SECCX.PRO | Login</title>
       </Head>
+
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-header">
-            <h1>
+            <h1 style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
+              <FontAwesomeIcon icon={faBarcode} />
               <span className="gradient-text">SECCX.PRO</span>
             </h1>
-            <p>Access your premium checker account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="input-group">
-              <FontAwesomeIcon icon={faUser} className="input-icon" />
               <input
                 type="text"
                 placeholder="Username"
-                value={login}
                 onChange={(e) => setLogin(e.target.value)}
                 required
               />
             </div>
 
             <div className="input-group">
-              <FontAwesomeIcon icon={faLock} className="input-icon" />
               <input
                 type="password"
                 placeholder="Password"
-                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
 
             <button type="submit" className="auth-button">
-              <FontAwesomeIcon icon={faRocket} />
-              Launch Platform
+              <FontAwesomeIcon icon={faLock} /> Login
             </button>
+
+            <div className="auth-footer" onClick={() => router.push("/signup")}>
+              <FontAwesomeIcon icon={faAdd} /> Create new account
+            </div>
+
+            {status && (
+              <div className="status-info">
+                <span>
+                  <b>Total users:</b> {status.totalUsers}
+                </span>
+              </div>
+            )}
           </form>
-
-          <div className="auth-footer">
-            <p>
-              Don't have an account?{' '}
-              <Link href="/signup">
-                <a className="auth-link">Create Account</a>
-              </Link>
-            </p>
-          </div>
         </div>
-
-        {status && (
-          <div style={{ opacity: 0.7, marginTop: "20px" }}>
-            <span>
-              <b>Total users:</b> {status.totalUsers}
-            </span>
-          </div>
-        )}
       </div>
 
       <style jsx>{`
@@ -195,11 +185,7 @@ export default function Login() {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           font-weight: bold;
-        }
-
-        .auth-header p {
-          color: #666;
-          margin-top: 10px;
+          margin-left: 10px;
         }
 
         .auth-form {
@@ -208,22 +194,9 @@ export default function Login() {
           gap: 20px;
         }
 
-        .input-group {
-          position: relative;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 15px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #00ff44;
-          font-size: 1.2rem;
-        }
-
-        input {
+        .input-group input {
           width: 100%;
-          padding: 15px 15px 15px 45px;
+          padding: 15px;
           border-radius: 12px;
           border: 1px solid #222;
           background: #111;
@@ -232,7 +205,7 @@ export default function Login() {
           transition: all 0.3s ease;
         }
 
-        input:focus {
+        .input-group input:focus {
           outline: none;
           border-color: #00ff44;
           box-shadow: 0 0 20px rgba(0,255,68,0.1);
@@ -261,19 +234,20 @@ export default function Login() {
 
         .auth-footer {
           text-align: center;
-          margin-top: 30px;
-          color: #666;
-        }
-
-        .auth-link {
           color: #00ff44;
-          text-decoration: none;
-          font-weight: 500;
+          cursor: pointer;
           transition: all 0.3s ease;
         }
 
-        .auth-link:hover {
-          text-decoration: underline;
+        .auth-footer:hover {
+          opacity: 0.8;
+        }
+
+        .status-info {
+          text-align: center;
+          color: #666;
+          margin-top: 20px;
+          font-size: 0.9rem;
         }
       `}</style>
     </>
