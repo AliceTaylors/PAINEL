@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId } from 'mongodb';
+import { connectToDatabase } from '../../../utils/mongodb';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -7,8 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const client = await MongoClient.connect(process.env.MONGODB_URI);
-    const db = client.db(process.env.MONGODB_DB);
+    const { db } = await connectToDatabase();
 
     const { cpf } = req.body;
     const { token } = req.headers;
@@ -60,7 +59,6 @@ export default async function handler(req, res) {
       }
     );
 
-    await client.close();
     return res.json(apiResponse.data);
 
   } catch (error) {
