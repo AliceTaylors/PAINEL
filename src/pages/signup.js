@@ -119,7 +119,7 @@ export default function Signup() {
             padding: 40px;
             border-radius: 20px;
             border: 1px solid rgba(0,255,68,0.1);
-            width: 100%;
+            width: min(90%, 450px);
             max-width: 400px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
           }
@@ -214,6 +214,22 @@ export default function Signup() {
 
           .auth-link:hover {
             text-decoration: underline;
+          }
+
+          @media (max-width: 480px) {
+            .input-group + .input-group {
+              margin-top: 5px;
+            }
+          }
+
+          @media (max-height: 600px) {
+            .auth-container {
+              padding: 15px;
+            }
+            
+            .auth-form {
+              gap: 12px;
+            }
           }
         `}</style>
       </div>
