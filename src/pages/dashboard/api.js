@@ -72,7 +72,9 @@ export default function ApiDocs() {
                 <br />
                 <br />
                 <div className="request-response">
-                  GET /api/external-check?user=USERNAME&password=PASSWORD&checker=TYPE&lista=CC|MM|YY|CVV
+                  <code>
+                    https://www.seccx.pro/api/external-check?user=USERNAME&password=PASSWORD&checker=TYPE&lista=CC|MM|YY|CVV
+                  </code>
                 </div>
                 <br />
                 <span className="title-highlight">Parameters</span>
@@ -148,6 +150,59 @@ export default function ApiDocs() {
           <Footer />
         </div>
       )}
+
+      <style jsx>{`
+        .api-docs {
+          background: rgba(0,255,68,0.03);
+          border-radius: 20px;
+          border: 1px solid rgba(0,255,68,0.1);
+          padding: 30px;
+          margin: 20px 0;
+        }
+
+        .endpoint {
+          font-size: 1.5rem;
+          color: #00ff44;
+        }
+
+        .title-highlight {
+          color: #00ff44;
+          font-size: 1.2rem;
+          font-weight: 600;
+        }
+
+        .request-response {
+          background: rgba(17,17,17,0.7);
+          padding: 20px;
+          border-radius: 12px;
+          border: 1px solid #222;
+          margin: 10px 0;
+          font-family: monospace;
+          overflow-x: auto;
+        }
+
+        code {
+          color: #00ff44;
+          word-break: break-all;
+        }
+
+        small {
+          color: #888;
+          display: inline-block;
+          margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+          .api-docs {
+            padding: 20px;
+          }
+
+          .request-response {
+            padding: 15px;
+            font-size: 0.9rem;
+          }
+        }
+      `}</style>
     </>
   );
 }
