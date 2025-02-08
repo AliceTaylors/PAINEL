@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import axios from 'axios';
 import crypto from 'crypto';
-import User from '../../models/User';
+import User from './models/User';
 
 // Conexão MongoDB
 const dbConnect = async () => {
