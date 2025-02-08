@@ -1,4 +1,4 @@
-import { connectToDatabase } from '../../../utils/mongodb';
+import dbConnect from '../../../utils/dbConnect';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { db } = await connectToDatabase();
+    const db = await dbConnect();
     const { cpf } = req.body;
     
     // Verificar token e usuário
