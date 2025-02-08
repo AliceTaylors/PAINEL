@@ -11,7 +11,7 @@ import {
   faServer,
   faCreditCard,
   faLock,
-  faRocket
+  faGem
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -40,7 +40,7 @@ export default function ApiDocs() {
   return (
     <>
       <Head>
-        <title>CHECKERCC | API Documentation</title>
+        <title>SECCX.PRO | API Documentation</title>
       </Head>
       {user && (
         <div className="root" style={{ width: "80%" }}>
@@ -58,7 +58,7 @@ export default function ApiDocs() {
               <br />
               <small>
                 <FontAwesomeIcon icon={faInfoCircle} /> All requests must be made
-                with your API key.
+                with your credentials.
               </small>
               <br />
               <br />
@@ -80,68 +80,63 @@ export default function ApiDocs() {
                 <span className="title-highlight">Parameters</span>
                 <br />
                 <small>
-                  <FontAwesomeIcon icon={faLock} /> Required parameters for
-                  authentication and card checking.
+                  <FontAwesomeIcon icon={faInfoCircle} /> Required parameters for API requests.
                 </small>
                 <br />
                 <br />
-                <div className="request-response">
-                  user: Your username
-                  <br />
-                  password: Your password
-                  <br />
-                  checker: adyen or premium
-                  <br />
-                  lista: Card data in format CC|MM|YY|CVV
+                <div className="params">
+                  <ul>
+                    <li><strong>user:</strong> Your username</li>
+                    <li><strong>password:</strong> Your password</li>
+                    <li><strong>checker:</strong> adyen ($0.50/live) or premium ($1.00/live)</li>
+                    <li><strong>lista:</strong> Card in format CC|MM|YY|CVV</li>
+                  </ul>
                 </div>
                 <br />
-                <span className="title-highlight">Response</span>
+                <span className="title-highlight">Response Examples</span>
                 <br />
                 <small>
-                  <FontAwesomeIcon icon={faRocket} /> Example responses from our
-                  API.
+                  <FontAwesomeIcon icon={faInfoCircle} /> Example responses from our API.
                 </small>
                 <br />
                 <br />
                 <div className="request-response">
-                  <FontAwesomeIcon icon={faCheckCircle} color="greenyellow" />{" "}
-                  Live:
-                  <br />
-                  {"{"}
-                  <br />
-                  status: "live",
-                  <br />
-                  msg: "#LIVE - Card Approved",
-                  <br />
-                  balance: "49.80"
-                  <br />
-                  {"}"}
-                  <br />
-                  <br />
-                  <FontAwesomeIcon icon={faTimesCircle} color="tomato" /> Die:
-                  <br />
-                  {"{"}
-                  <br />
-                  status: "die",
-                  <br />
-                  msg: "#DIE - Card Declined",
-                  <br />
-                  balance: "50.00"
-                  <br />
-                  {"}"}
-                  <br />
-                  <br />
-                  <FontAwesomeIcon icon={faInfoCircle} /> Error:
-                  <br />
-                  {"{"}
-                  <br />
-                  status: "error",
-                  <br />
-                  msg: "Insufficient funds",
-                  <br />
-                  balance: "0.00"
-                  <br />
-                  {"}"}
+                  <FontAwesomeIcon icon={faCheckCircle} style={{color: "#00ff44"}} /> Live:
+                  <pre>
+                    {JSON.stringify({
+                      status: "live",
+                      msg: "#LIVE - Pagamento Aprovado",
+                      balance: "49.50",
+                      details: {
+                        number: "4111111111111111",
+                        checker: "ADYEN",
+                        time: new Date().toISOString()
+                      }
+                    }, null, 2)}
+                  </pre>
+
+                  <FontAwesomeIcon icon={faTimesCircle} style={{color: "#ff4444"}} /> Die:
+                  <pre>
+                    {JSON.stringify({
+                      status: "die", 
+                      msg: "#DIE - Cartão Recusado",
+                      balance: "50.00",
+                      details: {
+                        number: "4111111111111111",
+                        checker: "PREMIUM",
+                        time: new Date().toISOString()
+                      }
+                    }, null, 2)}
+                  </pre>
+
+                  <FontAwesomeIcon icon={faInfoCircle} style={{color: "#ffaa00"}} /> Error:
+                  <pre>
+                    {JSON.stringify({
+                      status: "error",
+                      msg: "Insufficient funds",
+                      balance: "0.00"
+                    }, null, 2)}
+                  </pre>
                 </div>
               </div>
             </div>
@@ -186,10 +181,32 @@ export default function ApiDocs() {
           word-break: break-all;
         }
 
+        pre {
+          background: #111;
+          padding: 15px;
+          border-radius: 8px;
+          margin: 10px 0;
+          color: #888;
+        }
+
         small {
           color: #888;
           display: inline-block;
           margin: 5px 0;
+        }
+
+        .params ul {
+          list-style: none;
+          padding: 0;
+        }
+
+        .params li {
+          margin: 10px 0;
+          color: #888;
+        }
+
+        .params strong {
+          color: #00ff44;
         }
 
         @media (max-width: 768px) {
