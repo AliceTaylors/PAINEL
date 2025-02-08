@@ -28,8 +28,7 @@ import {
   faDollarSign as faUsdt,
   faMoneyBill as faLtc,
   faQrcode as faPix,
-  faSync,
-  faMoneyBillWave
+  faSync
 } from "@fortawesome/free-solid-svg-icons";
 import CurrencyInput from "react-currency-input-field";
 import Footer from "../../components/Footer";
@@ -52,7 +51,8 @@ const modalStyles = {
     marginRight: "-50%",
     transform: "translate(-50%, -50%)",
     width: "80%",
-    border: "1px solid #222 !important",
+    maxWidth: "500px",
+    border: "1px solid #222",
   },
 };
 
@@ -204,66 +204,57 @@ export default function Wallet() {
       <Head>
         <title>SECCX.PRO | Wallet</title>
       </Head>
+
       {user && (
         <div className="root" style={{ width: "80%" }}>
           <Header user={user} />
 
-          <div className="recharge">
-            <div className="recharge-history">
-              <h2>
-                <FontAwesomeIcon icon={faWallet} /> Wallet
-              </h2>
+          <div className="wallet-container">
+            <div className="balance-card">
+              <div className="balance-info">
+                <h3>Current Balance</h3>
+                <span className="balance-amount">${user.balance?.toFixed(2)}</span>
+              </div>
+              <button className="sync-button" onClick={handleSync}>
+                <FontAwesomeIcon icon={faSync} spin={counter === 30} />
+                <span>{counter}s</span>
+              </button>
+            </div>
 
-              <div className="balance-card">
-                <div className="balance-info">
-                  <h3>Current Balance</h3>
-                  <span className="balance-amount">${user.balance?.toFixed(2)}</span>
-                </div>
-                <button className="sync-button" onClick={handleSync}>
-                  <FontAwesomeIcon icon={faSync} spin={counter === 30} />
-                  <span>{counter}s</span>
-                </button>
+            <div className="wallet-sections">
+              <div className="redeem-section">
+                <h3>
+                  <FontAwesomeIcon icon={faGift} /> Redeem Code
+                </h3>
+                <form onSubmit={handleRedeem}>
+                  <input
+                    type="text"
+                    value={redeemCode}
+                    onChange={(e) => setRedeemCode(e.target.value)}
+                    placeholder="Enter your code"
+                    required
+                  />
+                  <button type="submit">
+                    <FontAwesomeIcon icon={faCoins} /> Redeem
+                  </button>
+                </form>
               </div>
 
-              <div className="wallet-sections">
-                <div className="redeem-section">
-                  <h3>
-                    <FontAwesomeIcon icon={faGift} /> Redeem Code
-                  </h3>
-                  <form onSubmit={handleRedeem}>
-                    <input
-                      type="text"
-                      value={redeemCode}
-                      onChange={(e) => setRedeemCode(e.target.value)}
-                      placeholder="Enter your code"
-                      required
-                    />
-                    <button type="submit">
-                      <FontAwesomeIcon icon={faCoins} /> Redeem
-                    </button>
-                  </form>
-                </div>
-
-                <div className="history-section">
-                  <h3>
-                    <FontAwesomeIcon icon={faHistory} /> Transaction History
-                  </h3>
-                  <div className="history-list">
-                    {user.logs?.slice(0, 10).map((log, index) => (
-                      <div key={index} className="history-item">
-                        <FontAwesomeIcon 
-                          icon={faMoneyBillWave}
-                          className={log.cost > 0 ? 'income' : 'expense'}
-                        />
-                        <div className="history-details">
-                          <span className="history-type">{log.history_type}</span>
-                          <span className="history-amount">
-                            {log.cost > 0 ? '+' : ''}{log.cost?.toFixed(2)}
-                          </span>
-                        </div>
+              <div className="history-section">
+                <h3>
+                  <FontAwesomeIcon icon={faHistory} /> Transaction History
+                </h3>
+                <div className="history-list">
+                  {user.logs?.slice(0, 10).map((log, index) => (
+                    <div key={index} className="history-item">
+                      <div className="history-details">
+                        <span className="history-type">{log.history_type}</span>
+                        <span className={`history-amount ${log.cost > 0 ? 'income' : 'expense'}`}>
+                          {log.cost > 0 ? '+' : ''}{log.cost?.toFixed(2)}
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -274,18 +265,10 @@ export default function Wallet() {
       )}
 
       <style jsx>{`
-        .recharge {
+        .wallet-container {
           padding: 20px;
           max-width: 1200px;
           margin: 0 auto;
-        }
-
-        h2 {
-          color: #00ff44;
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
         }
 
         .balance-card {
@@ -322,11 +305,6 @@ export default function Wallet() {
           align-items: center;
           gap: 8px;
           transition: all 0.3s ease;
-        }
-
-        .sync-button:hover {
-          background: rgba(0,255,68,0.2);
-          transform: translateY(-2px);
         }
 
         .wallet-sections {
@@ -375,12 +353,6 @@ export default function Wallet() {
           display: flex;
           align-items: center;
           gap: 8px;
-          transition: all 0.3s ease;
-        }
-
-        button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(0,255,68,0.2);
         }
 
         .history-list {
@@ -390,17 +362,12 @@ export default function Wallet() {
         }
 
         .history-item {
-          display: flex;
-          align-items: center;
-          gap: 15px;
           padding: 15px;
           background: rgba(17,17,17,0.7);
           border-radius: 12px;
-          transition: all 0.3s ease;
         }
 
         .history-details {
-          flex: 1;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -408,11 +375,6 @@ export default function Wallet() {
 
         .history-type {
           color: #888;
-        }
-
-        .history-amount {
-          color: #00ff44;
-          font-weight: 600;
         }
 
         .income {
@@ -424,7 +386,7 @@ export default function Wallet() {
         }
 
         @media (max-width: 768px) {
-          .recharge {
+          .wallet-container {
             padding: 15px;
           }
 
@@ -432,6 +394,11 @@ export default function Wallet() {
             flex-direction: column;
             text-align: center;
             gap: 20px;
+            padding: 20px;
+          }
+
+          .balance-amount {
+            font-size: 1.8rem;
           }
 
           form {
@@ -445,6 +412,14 @@ export default function Wallet() {
 
           .wallet-sections {
             grid-template-columns: 1fr;
+          }
+
+          .history-item {
+            padding: 12px;
+          }
+
+          .history-type {
+            font-size: 0.9rem;
           }
         }
       `}</style>
