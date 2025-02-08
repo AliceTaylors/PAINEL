@@ -27,7 +27,9 @@ import {
   faCoins as faBinance,
   faDollarSign as faUsdt,
   faMoneyBill as faLtc,
-  faQrcode as faPix
+  faQrcode as faPix,
+  faSync,
+  faMoneyBillWave
 } from "@fortawesome/free-solid-svg-icons";
 import CurrencyInput from "react-currency-input-field";
 import Footer from "../../components/Footer";
@@ -243,6 +245,9 @@ export default function Wallet() {
       icon: "success",
       text: "$" + res.data.amount + "credits code redeemed successfully!",
     });
+    
+    getUser();
+    setRedeemCode('');
   }
   useEffect(() => {
     const interval = setInterval(() => {
@@ -266,324 +271,67 @@ export default function Wallet() {
   return (
     <>
       <Head>
-        <title>CHECKERCC | Wallet</title>
+        <title>SECCX.PRO | Wallet</title>
       </Head>
       {user && (
         <div className="root" style={{ width: "80%" }}>
           <Header user={user} />
 
-          <div className="wallet-container" style={{ padding: "20px" }}>
-            <div className="balance-card" style={{
-              background: "linear-gradient(135deg, #1a1a1a 0%, #222 100%)",
-              padding: "30px",
-              borderRadius: "15px",
-              marginBottom: "30px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                width: "200px",
-                height: "200px",
-                background: "radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%)",
-                borderRadius: "50%",
-                transform: "translate(30%, -30%)"
-              }}/>
-              <h2 style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "10px",
-                color: "#00ff00",
-                marginBottom: "20px",
-                position: "relative"
-              }}>
-                <FontAwesomeIcon icon={faWallet} />
-                Your Balance
-              </h2>
-              <div style={{ 
-                fontSize: "2.5em", 
-                fontWeight: "bold",
-                color: "#fff",
-                position: "relative"
-              }}>
-                ${user.balance.toFixed(2)}
+          <div className="wallet-container">
+            <div className="balance-card">
+              <FontAwesomeIcon icon={faWallet} className="card-icon" />
+              <div className="balance-info">
+                <h2>Current Balance</h2>
+                <span className="balance-amount">${user.balance?.toFixed(2)}</span>
               </div>
+              <button className="sync-button" onClick={handleSync}>
+                <FontAwesomeIcon icon={faSync} spin={counter === 30} />
+                <span>{counter}s</span>
+              </button>
             </div>
 
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: order ? "1fr 1fr" : "1fr",
-              gap: "30px"
-            }}>
-              <div style={{
-                background: "#1a1a1a",
-                padding: "30px",
-                borderRadius: "15px",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.1)"
-              }}>
-                <h2 style={{
-                  color: "#00ff00",
-                  marginBottom: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px"
-                }}>
-                  <FontAwesomeIcon icon={faMoneyBillTransfer} />
-                  Deposit Funds
-                </h2>
-
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
-                  gap: "10px",
-                  marginBottom: "20px"
-                }}>
-                  {Object.entries(paymentMethods).map(([key, method]) => (
-                    <button
-                      key={key}
-                      onClick={() => setPaymentMethod(key)}
-                      style={{
-                        background: paymentMethod === key ? 
-                          `linear-gradient(135deg, ${method.color}22 0%, ${method.color}44 100%)` : 
-                          "#222",
-                        border: `1px solid ${paymentMethod === key ? method.color : "#333"}`,
-                        borderRadius: "8px",
-                        padding: "15px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "5px",
-                        cursor: "pointer",
-                        transition: "all 0.3s ease"
-                      }}
-                    >
-                      <FontAwesomeIcon 
-                        icon={method.icon} 
-                        style={{ 
-                          color: method.color,
-                          fontSize: "1.5em" 
-                        }}
-                      />
-                      <span style={{ 
-                        color: paymentMethod === key ? "#fff" : "#888",
-                        fontSize: "0.9em"
-                      }}>
-                        {method.name}
-                      </span>
-                    </button>
-                  ))}
+            <div className="wallet-sections">
+              <div className="wallet-section">
+                <div className="section-header">
+                  <FontAwesomeIcon icon={faGift} />
+                  <h2>Redeem Code</h2>
                 </div>
-
-                <form onSubmit={handleDeposit}>
-                  <div style={{ marginBottom: "20px" }}>
-                    <label style={{
-                      display: "block",
-                      marginBottom: "10px",
-                      color: "#888"
-                    }}>
-                      Amount (USD)
-                    </label>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder={`Min. $${paymentMethods[paymentMethod].min}`}
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        background: "#222",
-                        border: "1px solid #333",
-                        borderRadius: "8px",
-                        color: "#fff",
-                        fontSize: "1.1em"
-                      }}
-                      min={paymentMethods[paymentMethod].min}
-                      step="0.01"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                      width: "100%",
-                      padding: "15px",
-                      background: loading ? 
-                        "#333" : 
-                        `linear-gradient(135deg, ${paymentMethods[paymentMethod].color} 0%, ${paymentMethods[paymentMethod].color}aa 100%)`,
-                      border: "none",
-                      borderRadius: "8px",
-                      color: "#000",
-                      fontSize: "1.1em",
-                      fontWeight: "bold",
-                      cursor: loading ? "not-allowed" : "pointer",
-                      transition: "all 0.3s ease"
-                    }}
-                  >
-                    {loading ? "Processing..." : `Deposit with ${paymentMethods[paymentMethod].name}`}
+                <form onSubmit={handleRedeem} className="redeem-form">
+                  <input
+                    type="text"
+                    value={redeemCode}
+                    onChange={(e) => setRedeemCode(e.target.value)}
+                    placeholder="Enter your code"
+                    required
+                  />
+                  <button type="submit">
+                    <FontAwesomeIcon icon={faCoins} />
+                    Redeem
                   </button>
                 </form>
-
-                <div style={{
-                  marginTop: "30px",
-                  padding: "20px",
-                  background: "#222",
-                  borderRadius: "8px"
-                }}>
-                  <h3 style={{
-                    color: "#00ff00",
-                    marginBottom: "15px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px"
-                  }}>
-                    <FontAwesomeIcon icon={faGift} />
-                    Redeem Code
-                  </h3>
-                  <form onSubmit={handleRedeem} style={{
-                    display: "flex",
-                    gap: "10px"
-                  }}>
-                    <input
-                      type="text"
-                      value={redeemCode}
-                      onChange={(e) => setRedeemCode(e.target.value)}
-                      placeholder="Enter code"
-                      style={{
-                        flex: 1,
-                        padding: "12px",
-                        background: "#1a1a1a",
-                        border: "1px solid #333",
-                        borderRadius: "8px",
-                        color: "#fff"
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      style={{
-                        padding: "12px 20px",
-                        background: "#00ff00",
-                        border: "none",
-                        borderRadius: "8px",
-                        color: "#000",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      Redeem
-                    </button>
-                  </form>
-                </div>
               </div>
 
-              {order && (
-                <div style={{
-                  background: "#1a1a1a",
-                  padding: "30px",
-                  borderRadius: "15px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.1)"
-                }}>
-                  <h2 style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px',
-                    color: '#00ff00',
-                    marginBottom: '20px'
-                  }}>
-                    <FontAwesomeIcon icon={faQrcode} />
-                    Payment Details
-                  </h2>
-                  <div style={{ 
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '20px'
-                  }}>
-                    <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                      <QRCode
-                        value={order.address}
-                        size={200}
-                        style={{ background: '#fff', padding: '10px', borderRadius: '10px' }}
-                      />
-                    </div>
-                    <div style={{
-                      background: '#222',
-                      padding: '15px',
-                      borderRadius: '8px',
-                      wordBreak: 'break-all'
-                    }}>
-                      <div style={{ color: '#888', marginBottom: '5px' }}>Amount:</div>
-                      <div style={{ color: '#00ff00', fontSize: '1.2em' }}>
-                        {order.amount} {order.currency}
-                      </div>
-                    </div>
-                    <div style={{
-                      background: '#222',
-                      padding: '15px',
-                      borderRadius: '8px',
-                      wordBreak: 'break-all'
-                    }}>
-                      <div style={{ color: '#888', marginBottom: '5px' }}>Address:</div>
-                      <div style={{ color: '#fff' }}>{order.address}</div>
-                    </div>
-                  </div>
+              <div className="wallet-section">
+                <div className="section-header">
+                  <FontAwesomeIcon icon={faHistory} />
+                  <h2>Transaction History</h2>
                 </div>
-              )}
-            </div>
-
-            <div style={{
-              marginTop: "30px",
-              background: "#1a1a1a",
-              padding: "30px",
-              borderRadius: "15px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.1)"
-            }}>
-              <h2 style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px',
-                color: '#00ff00',
-                marginBottom: '20px'
-              }}>
-                <FontAwesomeIcon icon={faHistory} />
-                Transaction History
-              </h2>
-              <div className="logs" style={{
-                display: 'grid',
-                gap: '10px'
-              }}>
-                {user.logs.map((log, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: '#222',
-                      padding: '15px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="history-list">
+                  {user.logs?.slice(0, 10).map((log, index) => (
+                    <div key={index} className="history-item">
                       <FontAwesomeIcon 
-                        icon={log.cost > 0 ? faCoins : faCreditCard}
-                        style={{ color: log.cost > 0 ? '#00ff00' : '#ff4444' }}
+                        icon={faMoneyBillWave}
+                        className={log.cost > 0 ? 'income' : 'expense'}
                       />
-                      <div>
-                        <div style={{ color: '#fff' }}>{log.history_type}</div>
-                        {log.data && (
-                          <div style={{ color: '#888', fontSize: '0.9em' }}>{log.data}</div>
-                        )}
+                      <div className="history-details">
+                        <span className="history-type">{log.history_type}</span>
+                        <span className="history-amount">
+                          {log.cost > 0 ? '+' : ''}{log.cost?.toFixed(2)}
+                        </span>
                       </div>
                     </div>
-                    <div style={{ 
-                      color: log.cost > 0 ? '#00ff00' : '#ff4444',
-                      fontWeight: 'bold'
-                    }}>
-                      ${Math.abs(log.cost).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -591,6 +339,207 @@ export default function Wallet() {
           <Footer />
         </div>
       )}
+
+      <style jsx>{`
+        .wallet-container {
+          padding: 20px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .balance-card {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 30px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+
+        .card-icon {
+          font-size: 2.5rem;
+          color: #00ff44;
+        }
+
+        .balance-info {
+          flex: 1;
+        }
+
+        .balance-info h2 {
+          color: #888;
+          margin: 0 0 10px 0;
+          font-size: 1.1rem;
+        }
+
+        .balance-amount {
+          font-size: 2rem;
+          color: #00ff44;
+          font-weight: 600;
+        }
+
+        .sync-button {
+          background: rgba(0,255,68,0.1);
+          border: none;
+          color: #00ff44;
+          padding: 10px 20px;
+          border-radius: 12px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.3s ease;
+        }
+
+        .sync-button:hover {
+          background: rgba(0,255,68,0.2);
+          transform: translateY(-2px);
+        }
+
+        .wallet-sections {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 20px;
+        }
+
+        .wallet-section {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 25px;
+        }
+
+        .section-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 20px;
+          color: #00ff44;
+        }
+
+        .section-header h2 {
+          margin: 0;
+          font-size: 1.3rem;
+        }
+
+        .redeem-form {
+          display: flex;
+          gap: 10px;
+        }
+
+        input {
+          flex: 1;
+          padding: 12px 15px;
+          border-radius: 12px;
+          border: 1px solid #222;
+          background: rgba(17,17,17,0.7);
+          color: #fff;
+          font-size: 0.95rem;
+        }
+
+        input:focus {
+          outline: none;
+          border-color: #00ff44;
+        }
+
+        button {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 12px;
+          cursor: pointer;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.3s ease;
+        }
+
+        button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(0,255,68,0.2);
+        }
+
+        .history-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .history-item {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          padding: 15px;
+          background: rgba(17,17,17,0.7);
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+          transform: translateX(5px);
+        }
+
+        .history-details {
+          flex: 1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .history-type {
+          color: #888;
+          font-size: 0.9rem;
+        }
+
+        .history-amount {
+          color: #00ff44;
+          font-weight: 600;
+        }
+
+        .income {
+          color: #00ff44;
+        }
+
+        .expense {
+          color: #ff4444;
+        }
+
+        @media (max-width: 768px) {
+          .wallet-container {
+            padding: 15px;
+          }
+
+          .balance-card {
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+          }
+
+          .balance-amount {
+            font-size: 1.8rem;
+          }
+
+          .redeem-form {
+            flex-direction: column;
+          }
+
+          button {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .history-item {
+            padding: 12px;
+          }
+
+          .history-type {
+            font-size: 0.8rem;
+          }
+        }
+      `}</style>
     </>
   );
 }
