@@ -279,34 +279,57 @@ export default function Painel() {
       setTimeout(async () => {
         try {
           const token = window.localStorage.getItem('token');
-          const check = await axios.post('/api/checks', {
-            cc,
-            checker: checkerType,
-            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
-          }, { 
+          
+          // Usar o endpoint correto baseado no tipo de checker
+          const apiUrl = checkerType === 'premium' ? 
+            process.env.API_2_URL + cc :
+            process.env.API_1_URL + cc;
+
+          const check = await axios.get(apiUrl, {
             headers: { token }
           });
 
           const data = check.data;
 
           if (data.success) {
-            setLives(old => [data, ...old]);
+            setLives(old => [
+              {
+                ...data,
+                cc,
+                key: Date.now() + index, // Chave única para cada resultado
+                checkedAt: new Date().toISOString()
+              }, 
+              ...old
+            ]);
           } else {
-            setDies(old => [data, ...old]);
+            setDies(old => [
+              {
+                ...data,
+                cc,
+                key: Date.now() + index,
+                checkedAt: new Date().toISOString()
+              }, 
+              ...old
+            ]);
           }
 
-          if (listFormated.length - 1 === lives.length + dies.length) {
+          if (index === listFormated.length - 1) {
+            setChecking(false);
             alerts.fire({
               icon: 'success',
-              html: `Ready!<br/>${listFormated.length} card(s) checked!`,
+              html: `Check Complete!<br/>
+                    Total: ${listFormated.length}<br/>
+                    Lives: ${lives.length} | Dies: ${dies.length}`
             });
           }
         } catch (error) {
           console.error('Check error:', error);
           setDies(old => [{
             success: false,
-            message: 'Check Error',
-            cc
+            message: error.response?.data?.message || 'Check Error',
+            cc,
+            key: Date.now() + index,
+            checkedAt: new Date().toISOString()
           }, ...old]);
         }
       }, 3000 * index);
@@ -439,6 +462,23 @@ export default function Painel() {
       html: `<b>PURCHASED CARD: </b><br/> <b>NUMBER:</b> ${res.data.card.number}<br/><b>DETAILS:</b> ${res.data.card.data}<br/><b>PIN:</b> ${res.data.card.pin}<br/>${res.data.card.bin}<br/>PRICE: $${res.data.card.price}`,
     });
   }
+
+  // Função para limpar resultados (opcional para o usuário)
+  const handleClearResults = () => {
+    alerts.fire({
+      icon: 'warning',
+      title: 'Clear Results',
+      text: 'Do you want to clear all results?',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, clear',
+      cancelButtonText: 'No, keep'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setLives([]);
+        setDies([]);
+      }
+    });
+  };
 
   return (
     <>
@@ -637,6 +677,24 @@ export default function Painel() {
               </div>
             )}
           </div>
+
+          {/* Adicionar botão de limpar (opcional) */}
+          {(lives.length > 0 || dies.length > 0) && (
+            <button
+              onClick={handleClearResults}
+              style={{
+                background: '#ff4444',
+                color: '#fff',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              <FontAwesomeIcon icon={faTrash} /> Clear Results
+            </button>
+          )}
 
           <Footer />
         </div>
