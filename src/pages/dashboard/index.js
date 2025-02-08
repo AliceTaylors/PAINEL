@@ -174,7 +174,7 @@ export default function Painel() {
   const alerts = withReactContent(Swal);
   const [user, setUser] = useState(null);
   const [isChecking, setChecking] = useState(false);
-  const [list, setList] = useState(null);
+  const [list, setList] = useState('');
   const [lives, setLives] = useState([]);
   const [dies, setDies] = useState([]);
   const router = useRouter();
@@ -263,85 +263,90 @@ export default function Painel() {
 
   async function handleCheck(e) {
     e.preventDefault();
-    await getUser();
+    
+    if (!list || list.trim() === '') {
+      return alerts.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Please enter cards to check'
+      });
+    }
 
     const minBalance = checkerType === 'premium' ? 1.0 : 0.5;
     if (user.balance < minBalance) {
       return alerts.fire({
         icon: 'warning',
-        html: `Insufficient funds to check cards. <b>Add funds now!</b>`,
+        html: `You need at least $${minBalance} to check cards.<br/><b>Add funds now!</b>`,
       }).then(() => router.push('/dashboard/wallet'));
     }
 
     setChecking(true);
     const listFormated = String(list).split('\n').filter(n => n);
+    let processedCount = 0;
 
-    listFormated.forEach((cc, index) => {
-      setTimeout(async () => {
-        try {
-          const check = await axios.post('/api/checks', {
+    for (let i = 0; i < listFormated.length; i++) {
+      const cc = listFormated[i];
+      
+      try {
+        const check = await axios.post('/api/checks', {
+          cc,
+          checker: checkerType,
+          gateway_server: `us-${Math.floor(Math.random() * 20) + 1}`
+        }, {
+          headers: { token: window.localStorage.getItem('token') }
+        });
+
+        const data = check.data;
+        processedCount++;
+
+        if (data.success && (checkerType === 'adyen' || data.retorno?.includes('Pagamento Aprovado'))) {
+          setLives(old => [{
+            ...data,
             cc,
-            checker: checkerType,
-            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
-          }, {
-            headers: { token: window.localStorage.getItem('token') }
-          });
-
-          const data = check.data;
-
-          // Processar resposta baseado no tipo de checker
-          if (checkerType === 'premium') {
-            if (data.success && data.retorno.includes('Pagamento Aprovado')) {
-              setLives(old => [{
-                ...data,
-                key: Date.now() + index,
-                checkedAt: new Date().toISOString()
-              }, ...old]);
-            } else {
-              setDies(old => [{
-                ...data,
-                key: Date.now() + index,
-                checkedAt: new Date().toISOString()
-              }, ...old]);
-            }
-          } else {
-            // Lógica original do Adyen
-            if (data.success) {
-              setLives(old => [{
-                ...data,
-                key: Date.now() + index,
-                checkedAt: new Date().toISOString()
-              }, ...old]);
-            } else {
-              setDies(old => [{
-                ...data,
-                key: Date.now() + index,
-                checkedAt: new Date().toISOString()
-              }, ...old]);
-            }
-          }
-
-          if (listFormated.length - 1 === index) {
-            setChecking(false);
-            alerts.fire({
-              icon: 'success',
-              html: `Check Complete!<br/>
-                    Total: ${listFormated.length}<br/>
-                    Lives: ${lives.length} | Dies: ${dies.length}`
-            });
-          }
-
-        } catch (error) {
-          console.error('Check error:', error);
+            key: `${Date.now()}-${i}`,
+            checkedAt: new Date().toISOString()
+          }, ...old]);
+        } else {
           setDies(old => [{
-            success: false,
-            message: 'Check Error',
+            ...data,
             cc,
-            key: Date.now() + index,
+            key: `${Date.now()}-${i}`,
             checkedAt: new Date().toISOString()
           }, ...old]);
         }
-      }, 3000 * index);
+
+        // Atualizar user após cada check
+        await getUser();
+
+        // Aguardar 3 segundos antes do próximo check
+        if (i < listFormated.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
+      } catch (error) {
+        console.error('Check error:', error);
+        processedCount++;
+        setDies(old => [{
+          success: false,
+          message: error.response?.data?.message || 'Check Error',
+          cc,
+          key: `${Date.now()}-${i}`,
+          checkedAt: new Date().toISOString()
+        }, ...old]);
+      }
+    }
+
+    setChecking(false);
+    alerts.fire({
+      icon: 'success',
+      title: 'Check Complete!',
+      html: `
+        <div style="text-align: left">
+          <p>Total: ${processedCount}</p>
+          <p style="color: #00ff44">Lives: ${lives.length}</p>
+          <p style="color: #ff4444">Dies: ${dies.length}</p>
+        </div>
+      `
     });
   }
 
@@ -506,146 +511,174 @@ export default function Painel() {
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
             border: '1px solid #222'
           }}>
-            {!isChecking ? (
-              <>
-                <div style={{
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '30px'
+            }}>
+              <div>
+                <h2 style={{
+                  fontSize: '24px',
+                  color: '#00ff44',
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '30px'
+                  gap: '10px'
                 }}>
-                  <div>
-                    <h2 style={{
-                      fontSize: '24px',
-                      color: '#00ff44',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px'
-                    }}>
-                      <FontAwesomeIcon icon={faCreditCard} />
-                      {checkerType === 'premium' ? 'Premium' : 'Adyen'} Checker
-                    </h2>
-                    <p style={{ color: '#666', marginTop: '5px' }}>
-                      {checkerType === 'premium' ? 
-                        'Premium Gateway ($1.00/live | $0.10/die)' : 
-                        'Adyen Gateway ($0.50/live)'}
-                    </p>
-                  </div>
+                  <FontAwesomeIcon icon={faCreditCard} />
+                  {checkerType === 'premium' ? 'Premium' : 'Adyen'} Checker
+                </h2>
+                <p style={{ color: '#666', marginTop: '5px' }}>
+                  {checkerType === 'premium' ? 
+                    'Premium Gateway ($1.00/live | $0.10/die)' : 
+                    'Adyen Gateway ($0.50/live)'}
+                </p>
+              </div>
 
-                  <div style={{
-                    display: 'flex',
-                    gap: '10px'
-                  }}>
-                    <button
-                      onClick={() => setCheckerType('adyen')}
-                      style={{
-                        background: checkerType === 'adyen' ? '#00ff44' : '#111',
-                        color: checkerType === 'adyen' ? '#000' : '#fff',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Adyen
-                    </button>
-                    <button
-                      onClick={() => setCheckerType('premium')}
-                      style={{
-                        background: checkerType === 'premium' ? '#00ff44' : '#111',
-                        color: checkerType === 'premium' ? '#000' : '#fff',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Premium
-                    </button>
-                  </div>
-                </div>
-
-                <form onSubmit={handleCheck}>
-                  <textarea
-                    onChange={(e) => setList(e.target.value)}
-                    placeholder="Format: 4532117190458043|11|2027|475"
-                    style={{
-                      width: '100%',
-                      height: '200px',
-                      background: '#0a0a0a',
-                      border: '1px solid #222',
-                      borderRadius: '12px',
-                      padding: '20px',
-                      color: '#fff',
-                      fontSize: '14px',
-                      marginBottom: '20px'
-                    }}
-                  />
-
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {['adyen', 'premium'].map(type => (
                   <button
-                    type="submit"
+                    key={type}
+                    onClick={() => setCheckerType(type)}
                     style={{
-                      width: '100%',
-                      background: 'linear-gradient(45deg, #00ff44, #00cc44)',
-                      color: '#000',
+                      background: checkerType === type ? '#00ff44' : '#111',
+                      color: checkerType === type ? '#000' : '#fff',
                       border: 'none',
-                      padding: '15px',
-                      borderRadius: '10px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer'
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
                     }}
                   >
-                    <FontAwesomeIcon icon={faRocket} /> Start Check
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
                   </button>
-                </form>
-              </>
+                ))}
+              </div>
+            </div>
+
+            {!isChecking ? (
+              <form onSubmit={handleCheck}>
+                <textarea
+                  value={list}
+                  onChange={(e) => setList(e.target.value)}
+                  placeholder="Format: 4532117190458043|11|2027|475"
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    background: '#0a0a0a',
+                    border: '1px solid #222',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    marginBottom: '20px',
+                    fontFamily: 'monospace'
+                  }}
+                />
+
+                <button type="submit" style={{
+                  width: '100%',
+                  background: 'linear-gradient(45deg, #00ff44, #00cc44)',
+                  color: '#000',
+                  border: 'none',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px'
+                }}>
+                  <FontAwesomeIcon icon={faRocket} />
+                  Start Check
+                </button>
+              </form>
             ) : (
               <div className="checker-status">
-                <h2>Running check...</h2>
+                <h3 style={{ color: '#00ff44', marginBottom: '20px' }}>
+                  Checking in progress...
+                </h3>
+
                 <div style={{
                   background: '#0a0a0a',
                   padding: '20px',
                   borderRadius: '12px',
-                  marginBottom: '20px'
+                  marginBottom: '20px',
+                  border: '1px solid #222'
                 }}>
-                  Lives: <span style={{ color: '#00ff44' }}>{lives.length}</span> |
-                  Dies: <span style={{ color: '#ff4444' }}>{dies.length}</span> |
-                  Total: <span style={{ color: '#00aaff' }}>{lives.length + dies.length}</span>
+                  <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+                    <span>Lives: <b style={{ color: '#00ff44' }}>{lives.length}</b></span>
+                    <span>Dies: <b style={{ color: '#ff4444' }}>{dies.length}</b></span>
+                    <span>Total: <b style={{ color: '#00aaff' }}>{lives.length + dies.length}</b></span>
+                  </div>
                 </div>
 
-                <div className="results" style={{ display: 'grid', gap: '15px' }}>
-                  {[...lives, ...dies].map((result) => (
+                <button 
+                  onClick={handleStop}
+                  style={{
+                    background: '#ff4444',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    margin: '0 auto'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                  Stop Check
+                </button>
+              </div>
+            )}
+
+            {(lives.length > 0 || dies.length > 0) && (
+              <div style={{ marginTop: '30px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ color: '#00ff44' }}>Lives ({lives.length})</h3>
+                  {lives.map(result => (
                     <div key={result.key} style={{
                       background: '#0a0a0a',
-                      border: `1px solid ${result.success ? '#00ff44' : '#ff4444'}`,
-                      borderRadius: '10px',
-                      padding: '15px'
+                      border: '1px solid #00ff44',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      marginBottom: '10px'
                     }}>
-                      <div style={{ color: result.success ? '#00ff44' : '#ff4444' }}>
-                        {result.cc}
-                      </div>
+                      <div style={{ color: '#00ff44' }}>{result.cc}</div>
                       <div style={{ color: '#666', fontSize: '12px' }}>
-                        {result.message || result.return}
+                        {result.retorno || result.message}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <button onClick={handleStop} style={{
-                  background: '#ff4444',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  marginTop: '20px',
-                  cursor: 'pointer'
-                }}>
-                  <FontAwesomeIcon icon={faTrash} /> Stop Check
-                </button>
+                <div>
+                  <h3 style={{ color: '#ff4444' }}>Dies ({dies.length})</h3>
+                  {dies.map(result => (
+                    <div key={result.key} style={{
+                      background: '#0a0a0a',
+                      border: '1px solid #ff4444',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      marginBottom: '10px'
+                    }}>
+                      <div style={{ color: '#ff4444' }}>{result.cc}</div>
+                      <div style={{ color: '#666', fontSize: '12px' }}>
+                        {result.retorno || result.message}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+
+          <Footer />
         </div>
       ) : (
         <ReactLoading type="spinningBubbles" color="#00ff44" />
