@@ -29,7 +29,7 @@ export default function Signup() {
     ) {
       return alerts.fire({
         icon: "error",
-        text: "Invalid username. (Username ex.: user587)",
+        text: "Invalid username. (Username ex.: Dev4nonymous)",
       });
     }
 
