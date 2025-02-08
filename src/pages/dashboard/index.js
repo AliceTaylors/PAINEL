@@ -184,15 +184,22 @@ export default function Painel() {
   const [checkerType, setCheckerType] = useState('adyen');
 
   const getUser = async () => {
-    const res = await axios.get('/api/sessions', {
-      headers: { token: window.localStorage.getItem('token') },
-    });
+    try {
+      const token = window.localStorage.getItem('token');
+      const res = await axios.get('/api/sessions', {
+        headers: { token }
+      });
 
-    if (res.data.error) {
+      if (res.data.error) {
+        router.push('/');
+        return;
+      }
+
+      setUser(res.data.user);
+    } catch (error) {
+      console.error('Error getting user:', error);
       router.push('/');
     }
-
-    setUser(res.data.user);
   };
 
   const getStatus = async () => {
@@ -254,74 +261,56 @@ export default function Painel() {
       });
   }
 
-  // Função para o checker Adyen
   async function handleCheck(e) {
     e.preventDefault();
     await getUser();
 
-    if (user.balance < CHECKER_CONFIG.adyen.liveCost) {
+    if (user.balance < CHECKER_CONFIG[checkerType].liveCost) {
       return alerts.fire({
         icon: 'warning',
-        title: 'Insufficient Funds',
-        html: `You need at least $${CHECKER_CONFIG.adyen.liveCost} to check cards.<br/><b>Add funds now!</b>`,
+        html: `Insufficient funds to check cards. <b>Add funds now!</b>`,
       }).then(() => router.push('/dashboard/wallet'));
     }
 
     setChecking(true);
-    setLives([]);
-    setDies([]);
     const listFormated = String(list).split('\n').filter(n => n);
 
-    for (let index = 0; index < listFormated.length; index++) {
-      const cc = listFormated[index];
+    listFormated.forEach(async (cc, index) => {
       setTimeout(async () => {
         try {
-          const cardData = formatCard(cc);
-          const binInfo = await getBinInfo(cardData.bin);
+          const token = window.localStorage.getItem('token');
+          const check = await axios.post('/api/checks', {
+            cc,
+            checker: checkerType,
+            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
+          }, { 
+            headers: { token }
+          });
 
-          const check = await axios.get(CHECKER_CONFIG.adyen.apiUrl + cc);
+          const data = check.data;
 
-          const result = {
-            card: cc,
-            binInfo,
-            message: check.data.retorno,
-            success: check.data.success && check.data.retorno.includes('Pagamento Aprovado'),
-            details: {
-              number: cardData.number,
-              brand: binInfo.brand,
-              type: binInfo.type,
-              bank: binInfo.bank,
-              country: binInfo.country,
-              level: binInfo.level
-            }
-          };
-
-          if (result.success) {
-            setLives(old => [result, ...old]);
+          if (data.success) {
+            setLives(old => [data, ...old]);
           } else {
-            setDies(old => [result, ...old]);
+            setDies(old => [data, ...old]);
           }
 
-          if (index === listFormated.length - 1) {
+          if (listFormated.length - 1 === lives.length + dies.length) {
             alerts.fire({
               icon: 'success',
-              html: `Check Complete!<br/>
-                    Total: ${listFormated.length}<br/>
-                    Lives: ${lives.length} | Dies: ${dies.length}`
+              html: `Ready!<br/>${listFormated.length} card(s) checked!`,
             });
           }
         } catch (error) {
-          console.error(error);
-          const binInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
+          console.error('Check error:', error);
           setDies(old => [{
-            card: cc,
             success: false,
-            message: 'Adyen Check Error',
-            binInfo
+            message: 'Check Error',
+            cc
           }, ...old]);
         }
       }, 3000 * index);
-    }
+    });
   }
 
   // Função para o checker Premium
@@ -454,7 +443,7 @@ export default function Painel() {
   return (
     <>
       <Head>
-        <title>SECCX.PRO | Premium Checker</title>
+        <title>SECCX.PRO | Dashboard</title>
       </Head>
 
       {user ? (
