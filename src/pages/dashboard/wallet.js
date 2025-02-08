@@ -16,17 +16,31 @@ import {
   faArrowLeft,
   faEye,
   faRefresh,
+  faBitcoinSign,
+  faMoneyBillTransfer,
+  faHistory,
+  faChartLine,
+  faCreditCard,
+  faCoins,
+  faQrcode,
+  faGift,
+  faCoins as faBinance,
+  faDollarSign as faUsdt,
+  faMoneyBill as faLtc,
+  faQrcode as faPix,
+  faSync
 } from "@fortawesome/free-solid-svg-icons";
 import CurrencyInput from "react-currency-input-field";
 import Footer from "../../components/Footer";
 import useTranslation from "next-translate/useTranslation";
 import QRCode from "react-qr-code";
 
+const alerts = withReactContent(Swal);
+
 const modalStyles = {
   overlay: {
     background: "rgba(0,0,0,0.8)",
   },
-
   content: {
     top: "50%",
     background: "#000",
@@ -37,46 +51,25 @@ const modalStyles = {
     marginRight: "-50%",
     transform: "translate(-50%, -50%)",
     width: "80%",
-    border: "1px solid #222 !important",
+    maxWidth: "500px",
+    border: "1px solid #222",
   },
 };
 
-// Make sure to bind modal to your appElement (https://reactcommunity.org/react-modal/accessibility/)
 Modal.setAppElement("#__next");
 
-export default function Deposit() {
-  const [modalIsOpen, setIsOpen] = useState(false);
-  const [logsNumber, setLogsNumber] = useState(5);
-  const router = useRouter();
-
-  const [redeemCode, setRedeemCode] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("WAITING");
-  const alerts = withReactContent(Swal);
+export default function Wallet() {
   const [user, setUser] = useState(null);
-  const [balance, setBalance] = useState(5);
+  const [order, setOrder] = useState(null);
+  const [amount, setAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [redeemCode, setRedeemCode] = useState("");
   const [counter, setCounter] = useState(30);
+  const [paymentStatus, setPaymentStatus] = useState("...");
+  const router = useRouter();
+  const { t } = useTranslation("common");
 
-  const [currency, setCurrency] = useState("BTC");
-
-  const { t, lang } = useTranslation("dashboard");
-
-  async function getTransaction() {
-    const resTransaction = await axios.get("/api/transactions", {
-      headers: { token: window.localStorage.getItem("token") },
-    });
-
-    setPaymentStatus(resTransaction.data.status);
-
-    if (resTransaction.data.status === "completed") {
-      alerts.fire({
-        icon: "success",
-        text: "Deposit completed successfully!",
-      });
-      setPaymentStatus("completed");
-      return;
-    }
-  }
-  const getUser = async () => {
+  async function getUser() {
     const res = await axios.get("/api/sessions", {
       headers: { token: window.localStorage.getItem("token") },
     });
@@ -87,16 +80,15 @@ export default function Deposit() {
     }
 
     setUser(res.data.user);
-    getTransaction();
+  }
 
-    if (parseFloat(res.data.user.order.amount) > 4) {
-      getTransaction();
-    } else {
-    }
+  const getOrder = async () => {
+    const res = await axios.get('/api/transactions', {
+      headers: { token: window.localStorage.getItem('token') },
+    });
+
+    setOrder(res.data.order);
   };
-  useEffect(() => {
-    getUser();
-  }, []);
 
   async function handleSync(e) {
     if (e) e.preventDefault();
@@ -133,49 +125,36 @@ export default function Deposit() {
     router.push("/dashboard/wallet#rootpage");
   }
 
-  async function handleSubmit(e) {
+  const handleDeposit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    if (parseFloat(user.order.amount) >= 6) {
-      return;
-    }
+    try {
+      const res = await axios.post(
+        '/api/transactions',
+        { amount },
+        { headers: { token: window.localStorage.getItem('token') } }
+      );
 
-    if (isNaN(balance)) {
-      alerts.fire({ icon: "warning", text: "Enter a valid amount to charge" });
-      return;
-    }
+      if (res.data.error) {
+        alerts.fire({
+          icon: 'error',
+          text: res.data.error,
+        });
+        setLoading(false);
+        return;
+      }
 
-    if (parseFloat(balance) < 5) {
+      setOrder(res.data.order);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
       alerts.fire({
-        icon: "warning",
-        text: "Minimum value is 5 USD",
+        icon: 'error',
+        text: 'An error occurred. Please try again.',
       });
-      return;
     }
-    if (parseFloat(balance) > 1000) {
-      alerts.fire({
-        icon: "warning",
-        text: "Maximum deposit is $1000",
-      });
-      return;
-    }
-    alerts.showLoading();
-
-    const res = await axios.post(
-      "/api/transactions",
-      { amount: balance, currency },
-      { headers: { token: window.localStorage.getItem("token") } }
-    );
-
-    alerts.close();
-
-    if (res.data.error) {
-      alerts.fire({ icon: "warning", text: res.data.error });
-      return;
-    }
-
-    getUser();
-  }
+  };
 
   async function handleRedeem(e) {
     e.preventDefault();
@@ -195,21 +174,26 @@ export default function Deposit() {
       icon: "success",
       text: "$" + res.data.amount + "credits code redeemed successfully!",
     });
+    
+    getUser();
+    setRedeemCode('');
   }
+
+  useEffect(() => {
+    getUser();
+    getOrder();
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCounter((prevCounter) => prevCounter - 1);
     }, 1000);
 
-    // Limpa o intervalo quando o componente é desmontado
     return () => clearInterval(interval);
   }, []);
 
-  // Verifica se o contador chegou a zero
   useEffect(() => {
     if (counter === 0) {
-      // Faça algo quando o contador chegar a zero
-      // Por exemplo, exiba uma mensagem ou execute uma ação
       setCounter(30);
       handleSync();
     }
@@ -217,440 +201,262 @@ export default function Deposit() {
 
   return (
     <>
+      <Head>
+        <title>SECCX.PRO | Wallet</title>
+      </Head>
+
       {user && (
-        <>
-          <Head>
-            <title>checkercc | Wallet</title>
-          </Head>
-          <div className="root" id="#rootpage">
-            <Header user={user} />
+        <div className="root" style={{ width: "80%" }}>
+          <Header user={user} />
 
-            <h2>
-              <span>
-                {" "}
-                <FontAwesomeIcon icon={faWallet} /> WALLET{" "}
-              </span>
-            </h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "5px",
-                width: "100% !important",
-                flex: "1",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  marginBottom: "10px",
-                  flexDirection: "column",
-                }}
-              >
-                <small>Account</small>
-                <span>{user.login}</span>
-              </div>{" "}
-              <div
-                style={{
-                  background: "#222",
-                  height: "100%",
-                  border: "1px solid #222",
-                  width: "1px",
-                  margin: "0 20px",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  marginBottom: "10px",
-                  flexDirection: "column",
-                }}
-              >
-                <small>Balance</small>
-                <span>${user?.balance.toFixed(2)} USD</span>
+          <div className="wallet-container">
+            <div className="balance-card">
+              <div className="balance-info">
+                <h3>Current Balance</h3>
+                <span className="balance-amount">${user.balance?.toFixed(2)}</span>
               </div>
+              <button className="sync-button" onClick={handleSync}>
+                <FontAwesomeIcon icon={faSync} spin={counter === 30} />
+                <span>{counter}s</span>
+              </button>
             </div>
-            <div
-              style={{
-                background: "#222",
-                height: "1px",
-                marginBottom: "25px",
-              }}
-            ></div>
-            {parseFloat(user.order.amount) >= 5 && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  alignItems: "center",
-                  marginBottom: "30px",
-                }}
-              >
-                <h3 style={{ lineHeight: 0 }}>Pending deposit!</h3>
-                <span style={{ opacity: 0.7 }}>
-                  Total: {user.order.amount.toFixed(2)} USD
-                </span>
 
-                <span
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
-                  <Image
-                    src={`https://coinicons-api.vercel.app/api/icon/${user.order.currency.toLowerCase()}`}
-                    width={30}
-                    height={30}
-                  />{" "}
-                  {user.order.currency}
-                </span>
-
-                <QRCode
-                  value={user.order.address}
-                  size={128}
-                  style={{ border: "2px solid #fff" }}
-                />
-
-                <CopyToClipboard
-                  text={user.order.address}
-                  onCopy={() =>
-                    alerts.fire({
-                      icon: "success",
-                      text: "Copied to clipboard!",
-                      timer: 500,
-                    })
-                  }
-                >
-                  <small
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "16px",
-                      width: "100% !important",
-                      cursor: "pointer",
-                      letterSpacing: "1.5px",
-                      padding: "2px 3px",
-                      background: "rgba(0,0,0,0.45)",
-                      border: "1px solid #222",
-                      borderRadius: "5px",
-                      wordBreak: "break-all",
-                      msWordBreak: "break-all",
-                      maxWidth: "50%",
-                      color: "#999",
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faCopy} /> {user.order.address}
-                  </small>
-                </CopyToClipboard>
-                <span>Amount:</span>
-                <CopyToClipboard
-                  text={user.order.pricing}
-                  onCopy={() =>
-                    alerts.fire({
-                      icon: "success",
-                      text: "Copied to clipboard!",
-                      timer: 500,
-                    })
-                  }
-                >
-                  <small
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "16px",
-                      width: "100% !important",
-                      cursor: "pointer",
-                      letterSpacing: "1.5px",
-                      padding: "2px 3px",
-                      background: "rgba(0,0,0,0.45)",
-                      border: "1px solid #222",
-                      borderRadius: "5px",
-                      wordBreak: "break-all",
-                      msWordBreak: "break-all",
-                      maxWidth: "50%",
-                      color: "#999",
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faCopy} /> {user.order.pricing} BTC
-                  </small>
-                </CopyToClipboard>
-                <button onClick={handleSync} style={{ marginTop: "10px" }}>
-                  <FontAwesomeIcon icon={faRefresh} /> Sync
-                </button>
-                <button
-                  onClick={handleCancel}
-                  style={{
-                    background: "#111",
-                    fontSize: "16px",
-                    opacity: 0.5,
-                  }}
-                >
-                  <FontAwesomeIcon icon={faArrowLeft} /> Cancel
-                </button>
-              </div>
-            )}
-            <form className="recharge" onSubmit={handleSubmit}>
-              {parseFloat(user.order.amount) < 5 && (
-                <>
-                  <div
-                    style={{
-                      marginBottom: 0,
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        display: "flex",
-                        marginBottom: "5px",
-                        lineHeight: "0px",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: "10px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      <span>{t("addfunds")}</span>
-                    </h3>
-                  </div>
-
-                  <label htmlFor="" style={{ marginBottom: "2px" }}>
-                    Amount:
-                  </label>
-                  <CurrencyInput
-                    style={{ marginTop: 0 }}
-                    defaultValue={balance}
-                    allowNegativeValue={false}
-                    inputMode="numeric"
-                    prefix={""}
-                    suffix={" USD"}
-                    onValueChange={(e) => setBalance(e)}
+            <div className="wallet-sections">
+              <div className="redeem-section">
+                <h3>
+                  <FontAwesomeIcon icon={faGift} /> Redeem Code
+                </h3>
+                <form onSubmit={handleRedeem}>
+                  <input
+                    type="text"
+                    value={redeemCode}
+                    onChange={(e) => setRedeemCode(e.target.value)}
+                    placeholder="Enter your code"
+                    required
                   />
-
-                  <label htmlFor="" style={{ marginBottom: "2px" }}>
-                    Currency:
-                  </label>
-                  <select
-                    onChange={(e) => setCurrency(e.target.value)}
-                    style={{
-                      padding: "5px",
-                      fontSize: "16px",
-                      background: "#000",
-                      borderRadius: "5px",
-                      border: "1px solid #333",
-                    }}
-                    className="input"
-                  >
-                    <option value={"BTC"}>Bitcoin (BTC)</option>
-                    <option value={"ETH"}>Ethereum (ETH)</option>
-                    <option value={"LTC"}>Litecoin (LTC)</option>
-                    <option value={"DOGE"}>Dogecoin (DOGE)</option>
-                  </select>
-                  <button
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: isNaN(balance) ? "#222" : false,
-                    }}
-                    disabled={isNaN(balance)}
-                  >
-                    {isNaN(balance)
-                      ? "Invalid value"
-                      : `Add ${parseFloat(balance).toFixed(2)} USD`}
-                    {/* <small style={{ fontSize: "15px", marginLeft: "5px" }}>
-                      ({btcBalance} BTC)
-                    </small> */}
+                  <button type="submit">
+                    <FontAwesomeIcon icon={faCoins} /> Redeem
                   </button>
-                  <div
-                    className="payment-methods"
-                    style={{
-                      opacity: 0.8,
-                    }}
-                  >
-                    <div className="crypto-icons">
-                      <img
-                        src="https://coinicons-api.vercel.app/api/icon/btc"
-                        alt=""
-                      />
-                      <img
-                        src="https://coinicons-api.vercel.app/api/icon/eth"
-                        alt=""
-                      />{" "}
-                      <img
-                        src="https://coinicons-api.vercel.app/api/icon/ltc"
-                        alt=""
-                      />{" "}
-                      <img
-                        src="https://coinicons-api.vercel.app/api/icon/usdt"
-                        alt=""
-                      />{" "}
-                      <img
-                        src="https://coinicons-api.vercel.app/api/icon/doge"
-                        alt=""
-                      />{" "}
-                      <span>+</span>
-                    </div>
-                    <div
-                      className="addfunds-methods"
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "end",
-                      }}
-                    >
-                      <small
-                        onClick={() => {
-                          router.push("/dashboard/pix-deposits");
-                        }}
-                        style={{
-                          cursor: "pointer",
-                          letterSpacing: 1.2,
-                          padding: "4px",
-                          color: "#6b21a8",
-                          fontWeight: "bold",
-                          fontSize: "16px",
-                          borderRadius: "5px",
-                          display: "flex",
-                          flexDirection: "row",
-                          alignitems: "center",
-                          gap: "5px",
-                        }}
-                      >
-                        <Image width={20} height={15} src="/pix.png" /> Pay with
-                        PIX (Brazil)
-                        <FontAwesomeIcon icon={faArrowRight} />
-                      </small>
-                    </div>
-                  </div>
-                </>
-              )}
-            </form>
-            <hr />
-            <div className="recharge-redeem">
-              <div
-                style={{
-                  marginBottom: 0,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    marginBottom: "5px",
-                    lineHeight: "0px",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: "10px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  <span>{t("redeem-title")}</span>
-                </h3>
+                </form>
               </div>
-              <form onSubmit={handleRedeem}>
-                <label htmlFor="" style={{ marginBottom: "2px" }}>
-                  Code:
-                </label>
-                <input
-                  type="text"
-                  placeholder="ABC-123-456-789"
-                  name=""
-                  id=""
-                  onChange={(e) => setRedeemCode(e.target.value)}
-                />
-                <button>{t("redeem")}</button>
-              </form>
-            </div>
 
-            <br />
-            <hr />
-            <div className="recharge-history">
-              <div style={{ marginBottom: 0 }}>
-                <h3 style={{ fontWeight: "bold", margin: 0 }}>
-                  {t("transaction-history")}
+              <div className="history-section">
+                <h3>
+                  <FontAwesomeIcon icon={faHistory} /> Transaction History
                 </h3>
-                <small style={{ opacity: 0.5 }}>
-                  Click in log to see details
-                </small>
-              </div>
-              <br />
-              <div>
-                <div>
-                  <table
-                    style={{
-                      width: "100%",
-                      border: "1px solid #222 !important",
-                      borderRadius: "10px",
-                    }}
-                    id="customers"
-                  >
-                    <tr>
-                      <th>Log</th>
-                      <th>Amount</th>
-                    </tr>
-
-                    {user && (
-                      <>
-                        {user.logs.slice(0, logsNumber).map((log) => (
-                          <tr
-                            style={{ cursor: "pointer" }}
-                            key={log._id}
-                            onClick={() => {
-                              alerts.fire({
-                                title: log.history_type,
-                                text: log.data,
-                              });
-                            }}
-                          >
-                            <td>{log.history_type}</td>
-                            {log.cost === 0 ? (
-                              <td>
-                                <small
-                                  style={{
-                                    fontFamily: "monospace",
-                                    color: "#6b21a8",
-                                    letterSpacing: "4px",
-                                  }}
-                                >
-                                  FREE
-                                </small>
-                              </td>
-                            ) : (
-                              <td>
-                                {" "}
-                                $
-                                {parseFloat(parseFloat(log.cost) * -1).toFixed(
-                                  2
-                                )}{" "}
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </>
-                    )}
-                  </table>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      marginTop: "20px",
-                      flexDirection: "columns",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setLogsNumber(logsNumber + 5);
-                      }}
-                      style={{ fontSize: "12px", padding: "5px 10px" }}
-                    >
-                      + {t("show-more")}
-                    </button>
-                  </div>
+                <div className="history-list">
+                  {user.logs?.slice(0, 10).map((log, index) => (
+                    <div key={index} className="history-item">
+                      <div className="history-details">
+                        <span className="history-type">{log.history_type}</span>
+                        <span className={`history-amount ${log.cost > 0 ? 'income' : 'expense'}`}>
+                          {log.cost > 0 ? '+' : ''}{log.cost?.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-            <Footer />
+
+            <div className="payment-methods">
+              <div className="crypto-icons">
+                <img src="https://coinicons-api.vercel.app/api/icon/btc" alt="Bitcoin" />
+                <img src="https://coinicons-api.vercel.app/api/icon/eth" alt="Ethereum" />
+                <img src="https://coinicons-api.vercel.app/api/icon/ltc" alt="Litecoin" />
+                <img src="https://coinicons-api.vercel.app/api/icon/usdt" alt="USDT" />
+                <img src="https://coinicons-api.vercel.app/api/icon/doge" alt="Dogecoin" />
+              </div>
+            </div>
           </div>
-        </>
+
+          <Footer />
+        </div>
       )}
+
+      <style jsx>{`
+        .root {
+          padding: 20px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        h2 {
+          color: #00ff44;
+          font-size: 1.8rem;
+          margin-bottom: 25px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        small {
+          color: #888;
+          font-size: 0.9rem;
+        }
+
+        span {
+          color: #00ff44;
+          font-size: 1.1rem;
+        }
+
+        .recharge {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 25px;
+          margin: 20px 0;
+        }
+
+        .recharge-redeem {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 25px;
+        }
+
+        .recharge-history {
+          background: rgba(0,255,68,0.03);
+          border: 1px solid rgba(0,255,68,0.1);
+          border-radius: 20px;
+          padding: 25px;
+          margin-top: 20px;
+        }
+
+        h3 {
+          color: #00ff44;
+          font-size: 1.3rem;
+          margin-bottom: 15px;
+        }
+
+        label {
+          color: #888;
+          display: block;
+          margin-bottom: 8px;
+        }
+
+        input, select {
+          width: 100%;
+          padding: 12px 15px;
+          background: rgba(17,17,17,0.7);
+          border: 1px solid #222;
+          border-radius: 12px;
+          color: #fff;
+          font-size: 1rem;
+          margin-bottom: 15px;
+        }
+
+        button {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          width: 100%;
+          font-size: 1rem;
+          margin: 10px 0;
+        }
+
+        button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .payment-methods {
+          margin-top: 20px;
+          padding: 20px;
+          background: rgba(17,17,17,0.7);
+          border: 1px solid #222;
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .crypto-icons {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 15px;
+          flex-wrap: wrap;
+        }
+
+        .crypto-icons img {
+          width: 32px;
+          height: 32px;
+          transition: all 0.3s ease;
+          filter: grayscale(30%);
+          opacity: 0.8;
+        }
+
+        .crypto-icons img:hover {
+          transform: translateY(-2px);
+          filter: grayscale(0%);
+          opacity: 1;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+        }
+
+        th, td {
+          padding: 12px;
+          text-align: left;
+          border-bottom: 1px solid #222;
+        }
+
+        th {
+          color: #00ff44;
+          font-weight: 600;
+        }
+
+        tr:hover {
+          background: rgba(0,255,68,0.05);
+        }
+
+        hr {
+          border: none;
+          border-top: 1px solid #222;
+          margin: 30px 0;
+        }
+
+        @media (max-width: 768px) {
+          .root {
+            padding: 15px;
+          }
+
+          h2 {
+            font-size: 1.5rem;
+          }
+
+          .recharge, .recharge-redeem, .recharge-history {
+            padding: 20px;
+          }
+
+          button {
+            padding: 10px 20px;
+          }
+
+          .crypto-icons {
+            gap: 12px;
+          }
+
+          .crypto-icons img {
+            width: 28px;
+            height: 28px;
+          }
+
+          table {
+            font-size: 0.9rem;
+          }
+
+          th, td {
+            padding: 10px;
+          }
+        }
+      `}</style>
     </>
   );
 }
