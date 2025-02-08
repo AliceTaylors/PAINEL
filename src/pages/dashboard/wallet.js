@@ -464,41 +464,32 @@ export default function Deposit() {
                     }}
                   >
                     <div className="crypto-icons">
-                      <Image 
-                        src="/images/crypto/btc.png"
+                      <img
+                        src="https://cryptologos.cc/logos/bitcoin-btc-logo.png"
                         alt="Bitcoin"
-                        width={32}
-                        height={32}
                         className="crypto-icon"
                       />
-                      <Image 
-                        src="/images/crypto/eth.png"
+                      <img 
+                        src="https://cryptologos.cc/logos/ethereum-eth-logo.png"
                         alt="Ethereum"
-                        width={32}
-                        height={32}
                         className="crypto-icon"
                       />
-                      <Image 
-                        src="/images/crypto/ltc.png"
+                      <img
+                        src="https://cryptologos.cc/logos/litecoin-ltc-logo.png"
                         alt="Litecoin"
-                        width={32}
-                        height={32}
                         className="crypto-icon"
                       />
-                      <Image 
-                        src="/images/crypto/usdt.png"
+                      <img
+                        src="https://cryptologos.cc/logos/tether-usdt-logo.png"
                         alt="USDT"
-                        width={32}
-                        height={32}
                         className="crypto-icon"
                       />
-                      <Image 
-                        src="/images/crypto/doge.png"
+                      <img
+                        src="https://cryptologos.cc/logos/dogecoin-doge-logo.png"
                         alt="Dogecoin"
-                        width={32}
-                        height={32}
                         className="crypto-icon"
                       />
+                      <span>+</span>
                     </div>
                     <div
                       className="addfunds-methods"
@@ -669,18 +660,18 @@ export default function Deposit() {
   );
 }
 
-<style jsx global>{`
-  :root {
-    --primary-color: #6b21a8;
-    --secondary-color: #00ff44;
-    --background-color: #000000;
-    --surface-color: #111111;
-    --text-color: #ffffff;
-    --text-secondary: #888888;
-    --border-color: #222222;
+<style jsx>{`
+  .crypto-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
   }
 
   .crypto-icon {
+    width: 32px;
+    height: 32px;
     transition: all 0.3s ease;
     filter: grayscale(30%);
     opacity: 0.8;
@@ -692,5 +683,14 @@ export default function Deposit() {
     transform: translateY(-2px);
   }
 
-  /* ... resto dos estilos permanece igual ... */
+  @media (max-width: 768px) {
+    .crypto-icons {
+      gap: 12px;
+    }
+    
+    .crypto-icon {
+      width: 28px;
+      height: 28px;
+    }
+  }
 `}</style>
