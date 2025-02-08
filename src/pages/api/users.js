@@ -1,6 +1,6 @@
-import dbConnect from "../../utils/dbConnect";
-import { createToken } from "../../utils/auth";
-import checkerSettings from "../../checkerSettings";
+import dbConnect from "../../../utils/dbConnect";
+import { createToken } from "../../../utils/auth";
+import checkerSettings from "../../../checkerSettings";
 
 function isAlphaNumeric(str) {
   return /^[a-zA-Z0-9]+$/.test(str);
