@@ -6,9 +6,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  await dbConnect();
-
   try {
+    await dbConnect();
     const { cpf } = req.body;
     const { token } = req.headers;
     
@@ -21,10 +20,12 @@ export default async function handler(req, res) {
 
     // Verificar token e usuário
     if (!token) {
-      return res.send({ error: "Not allowed" });
+      return res.status(401).json({ message: 'Not allowed' });
     }
 
-    const dbUser = await global.mongoose.connection.db.collection('users').findOne({ 
+    // Buscar usuário
+    const db = global.mongoose.connection.db;
+    const dbUser = await db.collection('users').findOne({ 
       'sessions.token': token 
     });
 
@@ -43,7 +44,11 @@ export default async function handler(req, res) {
     try {
       // Fazer requisição à API de consulta
       const apiResponse = await axios.get(`https://ws.hubdodesenvolvedor.com.br/v2/cadastropf/?cpf=${cpf}&token=${process.env.HUB_TOKEN}`, {
-        timeout: 10000 // 10 segundos timeout
+        timeout: 10000, // 10 segundos timeout
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
 
       // Verificar se a resposta é válida
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
       }
 
       // Atualizar saldo e logs do usuário
-      await global.mongoose.connection.db.collection('users').updateOne(
+      await db.collection('users').updateOne(
         { _id: dbUser._id },
         {
           $push: {
@@ -72,19 +77,26 @@ export default async function handler(req, res) {
         }
       );
 
-      return res.json(apiResponse.data);
+      // Retornar dados da consulta
+      return res.status(200).json({
+        success: true,
+        data: apiResponse.data,
+        balance: dbUser.balance - cost
+      });
 
     } catch (apiError) {
       console.error('API externa error:', apiError);
       return res.status(503).json({ 
-        message: 'Serviço de consulta temporariamente indisponível'
+        message: 'Serviço de consulta temporariamente indisponível',
+        error: apiError.message
       });
     }
 
   } catch (error) {
     console.error('Consulta CPF error:', error);
     return res.status(500).json({ 
-      message: 'Erro interno do servidor. Tente novamente mais tarde.'
+      message: 'Erro interno do servidor. Tente novamente mais tarde.',
+      error: error.message
     });
   }
 } 
