@@ -49,6 +49,38 @@ const CHECKER_CONFIG = {
   }
 };
 
+// Função para obter informações do BIN
+const getBinInfo = async (bin) => {
+  try {
+    const res = await axios.get(`https://lookup.binlist.net/${bin}`);
+    return {
+      bank: res.data.bank?.name || 'Unknown',
+      type: res.data.type?.toUpperCase() || 'Unknown',
+      brand: res.data.brand?.toUpperCase() || 'Unknown',
+      country: res.data.country?.name || 'Unknown',
+    };
+  } catch {
+    return {
+      bank: 'Unknown',
+      type: 'Unknown',
+      brand: 'Unknown',
+      country: 'Unknown'
+    };
+  }
+};
+
+// Função para formatar o cartão
+const formatCard = (cc) => {
+  const [number, month, year, cvv] = cc.split('|');
+  return {
+    number: number?.trim(),
+    month: month?.trim(),
+    year: year?.trim(),
+    cvv: cvv?.trim(),
+    bin: number?.slice(0, 6)
+  };
+};
+
 export default function Painel() {
   const { t, lang } = useTranslation('dashboard');
   const [cards, setCards] = useState([]);
@@ -134,6 +166,7 @@ export default function Painel() {
       });
   }
 
+  // Função para o checker Adyen
   async function handleCheck(e) {
     e.preventDefault();
     getUser();
@@ -151,39 +184,53 @@ export default function Painel() {
 
     listFormated.forEach(async (cc, index) => {
       setTimeout(async () => {
-        if (user.balance < CHECKER_CONFIG.adyen.liveCost) {
-          return alerts.fire({
-            icon: 'warning',
-            html: 'Insufficient funds to continue checking.<br/><b>Add funds now!</b>'
-          }).then(() => router.push('/dashboard/wallet'));
-        }
+        try {
+          const cardData = formatCard(cc);
+          const binInfo = await getBinInfo(cardData.bin);
 
-        const check = await axios.post(
-          CHECKER_CONFIG.adyen.apiUrl,
-          {
+          const check = await axios.post('/api/checks', {
             cc,
-            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
-          },
-          { headers: { token: window.localStorage.getItem('token') } }
-        );
-
-        const data = check.data;
-        if (data.success) {
-          setLives(old => [data, ...old]);
-        } else {
-          setDies(old => [data, ...old]);
-        }
-
-        if (listFormated.length - 1 === lives.length + dies.length) {
-          alerts.fire({
-            icon: 'success',
-            html: `Check Complete!<br/>${listFormated.length} card(s) checked<br/>Lives: ${lives.length} | Dies: ${dies.length}`
+            gateway: 'adyen',
+            binInfo,
+            apiUrl: process.env.API_1_URL + cardData.number + '|' + 
+                   cardData.month + '|' + cardData.year + '|' + cardData.cvv
+          }, {
+            headers: { token: window.localStorage.getItem('token') }
           });
+
+          const result = {
+            card: cc,
+            ...check.data,
+            binInfo
+          };
+
+          if (check.data.success) {
+            setLives(old => [result, ...old]);
+          } else {
+            setDies(old => [result, ...old]);
+          }
+
+          if (index === listFormated.length - 1) {
+            alerts.fire({
+              icon: 'success',
+              html: `Check Complete!<br/>
+                    Total: ${listFormated.length}<br/>
+                    Lives: ${lives.length} | Dies: ${dies.length}`
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          setDies(old => [{
+            card: cc,
+            success: false,
+            message: 'Check Error'
+          }, ...old]);
         }
       }, 3000 * index);
     });
   }
 
+  // Função para o checker Premium
   async function handlePremiumCheck(e) {
     e.preventDefault();
     getUser();
@@ -191,8 +238,8 @@ export default function Painel() {
     if (user.balance < CHECKER_CONFIG.premium.liveCost) {
       return alerts.fire({
         icon: 'warning',
-        title: 'Insufficient Funds',
-        html: `You need at least $${CHECKER_CONFIG.premium.liveCost} for premium checking.<br/><b>Add funds now!</b>`,
+        title: 'Insufficient Premium Funds',
+        html: `You need at least $${CHECKER_CONFIG.premium.liveCost} for premium checks.<br/><b>Add funds now!</b>`,
       }).then(() => router.push('/dashboard/wallet'));
     }
 
@@ -201,44 +248,59 @@ export default function Painel() {
 
     listFormated.forEach(async (cc, index) => {
       setTimeout(async () => {
-        if (consecutiveDies >= CHECKER_CONFIG.premium.maxConsecutiveDies) {
-          return alerts.fire({
-            icon: 'error',
-            title: 'Account Restricted',
-            html: 'Your account has been temporarily restricted due to excessive failed checks.<br/>Please contact support.'
-          });
-        }
+        try {
+          const cardData = formatCard(cc);
+          const binInfo = await getBinInfo(cardData.bin);
 
-        if (user.balance < CHECKER_CONFIG.premium.dieCost) {
-          return alerts.fire({
-            icon: 'warning',
-            html: 'Insufficient funds to continue checking.<br/><b>Add funds now!</b>'
-          }).then(() => router.push('/dashboard/wallet'));
-        }
-
-        const check = await axios.post(
-          CHECKER_CONFIG.premium.apiUrl,
-          {
+          const check = await axios.post('/api/premium-checks', {
             cc,
-            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
-          },
-          { headers: { token: window.localStorage.getItem('token') } }
-        );
-
-        const data = check.data;
-        if (data.success) {
-          setConsecutiveDies(0);
-          setLives(old => [data, ...old]);
-        } else {
-          setConsecutiveDies(prev => prev + 1);
-          setDies(old => [data, ...old]);
-        }
-
-        if (listFormated.length - 1 === lives.length + dies.length) {
-          alerts.fire({
-            icon: 'success',
-            html: `Premium Check Complete!<br/>${listFormated.length} card(s) checked<br/>Lives: ${lives.length} | Dies: ${dies.length}`
+            gateway: 'premium',
+            binInfo,
+            apiUrl: process.env.API_2_URL + cardData.number + '|' + 
+                   cardData.month + '|' + cardData.year + '|' + cardData.cvv
+          }, {
+            headers: { token: window.localStorage.getItem('token') }
           });
+
+          const result = {
+            card: cc,
+            ...check.data,
+            binInfo
+          };
+
+          if (check.data.success) {
+            setConsecutiveDies(0);
+            setLives(old => [result, ...old]);
+          } else {
+            setConsecutiveDies(prev => {
+              const newCount = prev + 1;
+              if (newCount >= CHECKER_CONFIG.premium.maxConsecutiveDies) {
+                alerts.fire({
+                  icon: 'error',
+                  title: 'Account Restricted',
+                  text: 'Too many consecutive failed checks. Your account has been restricted for 24 hours.'
+                });
+              }
+              return newCount;
+            });
+            setDies(old => [result, ...old]);
+          }
+
+          if (index === listFormated.length - 1) {
+            alerts.fire({
+              icon: 'success',
+              html: `Premium Check Complete!<br/>
+                    Total: ${listFormated.length}<br/>
+                    Lives: ${lives.length} | Dies: ${dies.length}`
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          setDies(old => [{
+            card: cc,
+            success: false,
+            message: 'Premium Check Error'
+          }, ...old]);
         }
       }, 3000 * index);
     });
@@ -481,14 +543,36 @@ export default function Painel() {
                   <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                     {[...lives, ...dies].map((card, index) => (
                       <div key={index} style={{
-                        padding: '10px',
+                        padding: '15px',
                         background: card.success ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
                         borderRadius: '8px',
                         marginBottom: '10px',
-                        fontSize: '14px',
-                        color: card.success ? '#00ff00' : '#ff4444'
+                        fontSize: '14px'
                       }}>
-                        {card.card} - {card.message}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '8px'
+                        }}>
+                          <span style={{ color: card.success ? '#00ff00' : '#ff4444' }}>
+                            {card.card}
+                          </span>
+                          <span style={{ color: '#888' }}>
+                            {card.binInfo.brand} | {card.binInfo.type}
+                          </span>
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#666'
+                        }}>
+                          {card.binInfo.bank} | {card.binInfo.country}
+                        </div>
+                        <div style={{
+                          marginTop: '5px',
+                          color: card.success ? '#00ff00' : '#ff4444'
+                        }}>
+                          {card.message}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -610,16 +694,38 @@ export default function Painel() {
                   <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                     {[...lives, ...dies].map((card, index) => (
                       <div key={index} style={{
-                        padding: '10px',
+                        padding: '15px',
                         background: card.success ? 'rgba(255,215,0,0.1)' : 'rgba(255,0,0,0.1)',
                         borderRadius: '8px',
                         marginBottom: '10px',
-                        fontSize: '14px',
-                        color: card.success ? '#ffd700' : '#ff4444'
+                        fontSize: '14px'
                       }}>
-                          {card.card} - {card.message}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '8px'
+                        }}>
+                          <span style={{ color: card.success ? '#ffd700' : '#ff4444' }}>
+                            {card.card}
+                          </span>
+                          <span style={{ color: '#888' }}>
+                            {card.binInfo.brand} | {card.binInfo.type}
+                          </span>
                         </div>
-                      ))}
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#666'
+                        }}>
+                          {card.binInfo.bank} | {card.binInfo.country}
+                        </div>
+                        <div style={{
+                          marginTop: '5px',
+                          color: card.success ? '#ffd700' : '#ff4444'
+                        }}>
+                          {card.message}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
