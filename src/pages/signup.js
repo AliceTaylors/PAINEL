@@ -1,257 +1,229 @@
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faLock, 
-  faUser, 
-  faEnvelope, 
-  faGem,
-  faAdd,
-  faBarcode
-} from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
-import Link from 'next/link';
-import Head from 'next/head';
+import { faArrowRight, faBarcode } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import axios from "axios";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 import { NextSeo } from "next-seo";
 import versionData from "../version.json";
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 
 export default function Signup() {
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [mail, setMail] = useState('');
-  const router = useRouter();
+  const [status, setStatus] = useState(null);
+  const [login, setLogin] = useState(null);
+  const [telegram, setTelegram] = useState(null);
+  const [password, setPassword] = useState(null);
+  const [passwordConfirmation, setPasswordConfirmation] = useState(null);
   const alerts = withReactContent(Swal);
+  const router = useRouter();
+  const [invalidUsername, setInvalidUsername] = useState(false);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
 
-    try {
-      const res = await axios.post('/api/users', {
-        login,
-        password,
-        mail
-      });
-
-      if (res.data.error) {
-        return alerts.fire({
-          icon: 'error',
-          title: 'Erro',
-          text: res.data.error
-        });
-      }
-
-      if (res.data.success) {
-        window.localStorage.setItem('token', res.data.token);
-        router.push('/dashboard');
-      }
-
-    } catch (error) {
-      alerts.fire({
-        icon: 'error',
-        title: 'Erro',
-        text: error.response?.data?.message || 'Erro ao criar conta'
+    if (
+      login.indexOf(" ") > -1 ||
+      login.indexOf("-") > -1 ||
+      login.indexOf("@") > -1
+    ) {
+      return alerts.fire({
+        icon: "error",
+        text: "Invalid username. (Username ex.: user587)",
       });
     }
-  };
+
+    if (passwordConfirmation != password) {
+      return alerts.fire({
+        icon: "error",
+        text: "Wrong password confirmation",
+      });
+    }
+
+    if (String(login).length < 5) {
+      alerts.fire({
+        icon: "error",
+        text: "Username too short! Minimum is 5 characters.",
+      });
+      return;
+    }
+
+    const res = await axios.post("/api/users", {
+      login,
+      password,
+      mail: telegram,
+    });
+
+    if (res.data.error) {
+      alerts.fire({
+        icon: "error",
+        title: "Error!",
+        text: res.data.error,
+      });
+    } else if (res.data.success) {
+      alerts.fire({
+        icon: "success",
+        title: "Ready!",
+        text: "Redirecting...",
+        timer: 500,
+      });
+
+      window.localStorage.setItem("token", res.data.token);
+
+      router.push("/dashboard");
+    }
+  }
+
+  useEffect(() => {
+    async function getStatus() {
+      const res = await axios.get("/api/status");
+      setStatus(res.data);
+    }
+    getStatus();
+    async function checkLogin() {
+      const res = await axios.get("/api/sessions", {
+        headers: { token: window.localStorage.getItem("token") },
+      });
+
+      if (!res.data.error) {
+        router.push("/dashboard");
+        return;
+      }
+    }
+    function checkVersion() {
+      if (!window.localStorage.getItem(versionData.versionCode)) {
+        alerts.fire({
+          icon: "info",
+          title: "New version: " + versionData.versionCode + "!",
+          text: versionData.updates,
+        });
+        window.localStorage.setItem(versionData.versionCode, "true");
+      }
+    }
+    checkVersion();
+    checkLogin();
+  }, []);
+
+  function handleUsernameVerification(value) {
+    function isAlphaNumeric(str) {
+      var code, i, len;
+
+      for (i = 0, len = str.length; i < len; i++) {
+        code = str.charCodeAt(i);
+        if (
+          !(code > 47 && code < 58) && // numeric (0-9)
+          !(code > 64 && code < 91) && // upper alpha (A-Z)
+          !(code > 96 && code < 123)
+        ) {
+          // lower alpha (a-z)
+          return false;
+        }
+      }
+      return true;
+    }
+
+    setInvalidUsername(isAlphaNumeric(value) ? false : true);
+  }
 
   return (
     <>
       <NextSeo
-        title="CHECKERCC - Free Sign Up"
+        title="checkercc - Free Sign Up"
         description="Create free account and earn free credits. Sign up now! CC Checker, Cvv Check, CC Shop."
         openGraph={{
-          url: "https://www.checkercc.site/",
+          url: "https://www.checkercc.tech/",
           type: "website",
           locale: "en_US",
-          title: "CHECKERCC - Free Sign Up",
+          title: "checkercc - Free Sign Up",
           description:
             "Create free account and earn free credits. Sign up now! CC Checker, Cvv Check, CC Shop.",
-          siteName: "CHECKERCC",
+          siteName: "checkercc",
         }}
       />
       <Head>
-        <title>SECCX.PRO | Create Account</title>
+        <title>checkercc | Register</title>
       </Head>
+      <div className="root">
+        <form onSubmit={handleSubmit} className="login">
+          <h1 style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
+            <FontAwesomeIcon icon={faBarcode} />
+            checker
+            <b style={{ color: "#6b21a8" }}>cc</b>
+          </h1>
+          <h2>Sign up </h2>
+          <label htmlFor="" style={{ margin: 0 }}>
+            Username:
+          </label>
+          <input
+            minLength={5}
+            maxLength={16}
+            onChange={(e) => {
+              setLogin(e.target.value);
+              handleUsernameVerification(e.target.value);
+            }}
+            type="text"
+            name=""
+            placeholder="username (ex: crazy8) *"
+            id=""
+            style={invalidUsername ? { border: "1px solid #d00505" } : {}}
+          />
+          {invalidUsername && (
+            <small
+              style={{ fontSize: "12px", color: "#d00505", marginTop: "-15px" }}
+            >
+              Please enter an alphanumeric username!
+            </small>
+          )}
+          <label htmlFor="" style={{ margin: 0 }}>
+            Telegram:
+          </label>
+          <input
+            onChange={(e) => setTelegram(e.target.value)}
+            type="text"
+            name=""
+            placeholder="@telegram_user"
+            id=""
+          />
 
-      <div className="auth-page">
-        <div className="auth-container">
-          <div className="auth-header">
-            <h1 style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-              <FontAwesomeIcon icon={faBarcode} />
-              <span className="gradient-text">SECCX.PRO</span>
-            </h1>
+          <label htmlFor="" style={{ margin: 0 }}>
+            Password:
+          </label>
+          <input
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            name=""
+            placeholder="password *"
+            id=""
+          />
+
+          <label htmlFor="" style={{ margin: 0 }}>
+            Confirm password:
+          </label>
+          <input
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            type="password"
+            name=""
+            placeholder="password confirmation *"
+            id=""
+          />
+          <button>Create account</button>
+
+          <div
+            style={{ color: "#6b21a8", cursor: "pointer" }}
+            onClick={() => router.push("/login")}
+          >
+            <FontAwesomeIcon icon={faArrowRight} /> Already registered? Log in
+            here
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="input-group">
-              <input
-                type="text"
-                placeholder="Username"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
-                required
-              />
+          {status && (
+            <div style={{ opacity: 0.7 }}>
+              <span>
+                <b>Total users:</b> {status.totalUsers}
+              </span>
             </div>
-
-            <div className="input-group">
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <input
-                type="text"
-                placeholder="Telegram (opcional)"
-                value={mail}
-                onChange={(e) => setMail(e.target.value)}
-              />
-            </div>
-
-            <button type="submit" className="auth-button">
-              <FontAwesomeIcon icon={faAdd} /> Criar Conta
-            </button>
-
-            <div className="auth-footer" onClick={() => router.push("/login")}>
-              Já tem uma conta? Login
-            </div>
-          </form>
-        </div>
-
-        <style jsx>{`
-          .auth-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-            padding: 20px;
-          }
-
-          .auth-container {
-            background: rgba(0,255,68,0.05);
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid rgba(0,255,68,0.1);
-            width: min(90%, 450px);
-            max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-          }
-
-          .auth-header {
-            text-align: center;
-            margin-bottom: 40px;
-          }
-
-          .gradient-text {
-            font-size: 2.5rem;
-            background: linear-gradient(45deg, #00ff44, #00cc44);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: bold;
-          }
-
-          .auth-header p {
-            color: #666;
-            margin-top: 10px;
-          }
-
-          .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-          }
-
-          .input-group {
-            position: relative;
-          }
-
-          .input-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #00ff44;
-            font-size: 1.2rem;
-          }
-
-          input {
-            width: 100%;
-            padding: 15px 15px 15px 45px;
-            border-radius: 12px;
-            border: 1px solid #222;
-            background: #111;
-            color: #fff;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-          }
-
-          input:focus {
-            outline: none;
-            border-color: #00ff44;
-            box-shadow: 0 0 20px rgba(0,255,68,0.1);
-          }
-
-          .auth-button {
-            background: linear-gradient(45deg, #00ff44, #00cc44);
-            color: #000;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-          }
-
-          .auth-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,255,68,0.2);
-          }
-
-          .auth-footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #666;
-          }
-
-          .auth-link {
-            color: #00ff44;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-          }
-
-          .auth-link:hover {
-            text-decoration: underline;
-          }
-
-          @media (max-width: 480px) {
-            .input-group + .input-group {
-              margin-top: 5px;
-            }
-          }
-
-          @media (max-height: 600px) {
-            .auth-container {
-              padding: 15px;
-            }
-            
-            .auth-form {
-              gap: 12px;
-            }
-          }
-        `}</style>
+          )}
+        </form>
       </div>
     </>
   );
