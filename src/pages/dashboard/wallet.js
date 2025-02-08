@@ -465,27 +465,27 @@ export default function Deposit() {
                   >
                     <div className="crypto-icons">
                       <img
-                        src="https://cryptologos.cc/logos/bitcoin-btc-logo.png"
+                        src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
                         alt="Bitcoin"
                         className="crypto-icon"
                       />
                       <img 
-                        src="https://cryptologos.cc/logos/ethereum-eth-logo.png"
+                        src="https://assets.coingecko.com/coins/images/279/small/ethereum.png"
                         alt="Ethereum"
                         className="crypto-icon"
                       />
                       <img
-                        src="https://cryptologos.cc/logos/litecoin-ltc-logo.png"
+                        src="https://assets.coingecko.com/coins/images/2/small/litecoin.png" 
                         alt="Litecoin"
                         className="crypto-icon"
                       />
                       <img
-                        src="https://cryptologos.cc/logos/tether-usdt-logo.png"
+                        src="https://assets.coingecko.com/coins/images/325/small/Tether.png"
                         alt="USDT"
                         className="crypto-icon"
                       />
                       <img
-                        src="https://cryptologos.cc/logos/dogecoin-doge-logo.png"
+                        src="https://assets.coingecko.com/coins/images/5/small/dogecoin.png"
                         alt="Dogecoin"
                         className="crypto-icon"
                       />
@@ -667,20 +667,25 @@ export default function Deposit() {
     justify-content: center;
     gap: 15px;
     flex-wrap: wrap;
+    margin: 15px 0;
   }
 
   .crypto-icon {
     width: 32px;
     height: 32px;
     transition: all 0.3s ease;
-    filter: grayscale(30%);
+    filter: brightness(0.9);
     opacity: 0.8;
+    background: rgba(255,255,255,0.1);
+    padding: 5px;
+    border-radius: 50%;
   }
 
   .crypto-icon:hover {
-    filter: grayscale(0%);
+    filter: brightness(1);
     opacity: 1;
     transform: translateY(-2px);
+    background: rgba(255,255,255,0.2);
   }
 
   @media (max-width: 768px) {
@@ -691,6 +696,7 @@ export default function Deposit() {
     .crypto-icon {
       width: 28px;
       height: 28px;
+      padding: 4px;
     }
   }
 `}</style>
