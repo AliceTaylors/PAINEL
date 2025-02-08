@@ -26,7 +26,12 @@ import {
   faWallet,
   faPlus,
   faSpinner,
-  faPlay
+  faPlay,
+  faHome,
+  faShop,
+  faGear,
+  faRightFromBracket,
+  faUser
 } from '@fortawesome/free-solid-svg-icons';
 import Head from 'next/head';
 import Skeleton from 'react-loading-skeleton';
@@ -505,192 +510,240 @@ export default function Dashboard() {
         <title>SECCX.PRO | Dashboard</title>
       </Head>
 
-      <div className="dashboard-container">
-        <div className="dashboard-header">
-          <div className="logo">
-            <FontAwesomeIcon icon={faBarcode} />
-            <span className="gradient-text">SECCX.PRO</span>
-          </div>
+      {user ? (
+        <>
+          <Header user={user} />
           
-          <div className="user-info">
-            <div className="balance">
-              <FontAwesomeIcon icon={faWallet} />
-              <span>${user?.balance.toFixed(2)}</span>
-            </div>
-            <button onClick={() => router.push('/dashboard/wallet')} className="add-funds">
-              <FontAwesomeIcon icon={faPlus} /> Add Funds
-            </button>
-          </div>
-        </div>
+          <div className="dashboard-container">
+            <div className="sidebar">
+              <div className="menu-items">
+                <button 
+                  className="menu-item active"
+                  onClick={() => router.push("/dashboard")}
+                >
+                  <FontAwesomeIcon icon={faHome} />
+                  <span>Dashboard</span>
+                </button>
 
-        <div className="checker-container">
-          <div className="checker-type">
-            <button 
-              className={checkerType === 'adyen' ? 'active' : ''}
-              onClick={() => setCheckerType('adyen')}
-            >
-              <FontAwesomeIcon icon={faCreditCard} /> Adyen
-              <span className="price">$0.50/live</span>
-            </button>
-            <button 
-              className={checkerType === 'premium' ? 'active' : ''}
-              onClick={() => setCheckerType('premium')}
-            >
-              <FontAwesomeIcon icon={faGem} /> Premium
-              <span className="price">$1.00/live</span>
-            </button>
-          </div>
+                <button 
+                  className="menu-item"
+                  onClick={() => router.push("/dashboard/wallet")}
+                >
+                  <FontAwesomeIcon icon={faWallet} />
+                  <span>Wallet</span>
+                </button>
 
-          <div className="checker-form">
-            <textarea
-              placeholder="Format: 4532117190458043|11|2027|475"
-              onChange={(e) => setList(e.target.value)}
-              disabled={isChecking}
-            />
-            
-            <button 
-              onClick={handleCheck}
-              disabled={isChecking}
-              className="check-button"
-            >
-              {isChecking ? (
-                <>
-                  <FontAwesomeIcon icon={faSpinner} spin /> Checking...
-                </>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faPlay} /> Start Check
-                </>
-              )}
-            </button>
-          </div>
+                <button 
+                  className="menu-item"
+                  onClick={() => router.push("/dashboard/shop")}
+                >
+                  <FontAwesomeIcon icon={faShop} />
+                  <span>Shop</span>
+                </button>
 
-          <div className="results-container">
-            <div className="results-header">
-              <div className="stats">
-                <div className="stat">
-                  <span className="label">Lives</span>
-                  <span className="value live">{lives.length}</span>
-                </div>
-                <div className="stat">
-                  <span className="label">Dies</span>
-                  <span className="value die">{dies.length}</span>
-                </div>
-                <div className="stat">
-                  <span className="label">Total</span>
-                  <span className="value">{lives.length + dies.length}</span>
-                </div>
+                {user.admin && (
+                  <button 
+                    className="menu-item"
+                    onClick={() => router.push("/administration")}
+                  >
+                    <FontAwesomeIcon icon={faGear} />
+                    <span>Admin</span>
+                  </button>
+                )}
+
+                <button 
+                  className="menu-item logout"
+                  onClick={() => {
+                    window.localStorage.removeItem("token");
+                    router.push("/");
+                  }}
+                >
+                  <FontAwesomeIcon icon={faRightFromBracket} />
+                  <span>Logout</span>
+                </button>
               </div>
             </div>
 
-            <div className="results-grid">
-              {lives.map((result) => (
-                <div key={result.key} className="result-card live">
-                  <div className="card-number">{result.cc}</div>
-                  <div className="card-info">
-                    <div className="bin-info">
-                      <span>{result.binInfo?.brand}</span>
-                      <span>{result.binInfo?.type}</span>
-                      <span>{result.binInfo?.level}</span>
-                    </div>
-                    <div className="bank-info">
-                      <span>{result.binInfo?.bank}</span>
-                      <span>{result.binInfo?.country}</span>
-                    </div>
-                  </div>
-                  <div className="result-message">{result.message}</div>
+            <div className="content">
+              <div className="checker-container">
+                <div className="checker-type">
+                  <button 
+                    className={checkerType === 'adyen' ? 'active' : ''}
+                    onClick={() => setCheckerType('adyen')}
+                  >
+                    <FontAwesomeIcon icon={faCreditCard} />
+                    <span>Adyen Gateway</span>
+                    <span className="price">$0.50/live</span>
+                  </button>
+                  <button 
+                    className={checkerType === 'premium' ? 'active' : ''}
+                    onClick={() => setCheckerType('premium')}
+                  >
+                    <FontAwesomeIcon icon={faGem} />
+                    <span>Premium Gateway</span>
+                    <span className="price">$1.00/live</span>
+                  </button>
                 </div>
-              ))}
 
-              {dies.map((result) => (
-                <div key={result.key} className="result-card die">
-                  <div className="card-number">{result.cc}</div>
-                  <div className="card-info">
-                    <div className="bin-info">
-                      <span>{result.binInfo?.brand}</span>
-                      <span>{result.binInfo?.type}</span>
-                      <span>{result.binInfo?.level}</span>
-                    </div>
-                    <div className="bank-info">
-                      <span>{result.binInfo?.bank}</span>
-                      <span>{result.binInfo?.country}</span>
+                <div className="checker-form">
+                  <textarea
+                    placeholder="Format: 4532117190458043|11|2027|475"
+                    onChange={(e) => setList(e.target.value)}
+                    disabled={isChecking}
+                  />
+                  
+                  <button 
+                    onClick={handleCheck}
+                    disabled={isChecking}
+                    className="check-button"
+                  >
+                    {isChecking ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin /> Checking...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faPlay} /> Start Check
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="results-container">
+                  <div className="results-header">
+                    <div className="stats">
+                      <div className="stat">
+                        <span className="label">Lives</span>
+                        <span className="value live">{lives.length}</span>
+                      </div>
+                      <div className="stat">
+                        <span className="label">Dies</span>
+                        <span className="value die">{dies.length}</span>
+                      </div>
+                      <div className="stat">
+                        <span className="label">Total</span>
+                        <span className="value">{lives.length + dies.length}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="result-message">{result.message}</div>
+
+                  <div className="results-grid">
+                    {lives.map((result) => (
+                      <div key={result.key} className="result-card live">
+                        <div className="card-number">{result.cc}</div>
+                        <div className="card-info">
+                          <div className="bin-info">
+                            <span>{result.binInfo?.brand}</span>
+                            <span>{result.binInfo?.type}</span>
+                            <span>{result.binInfo?.level}</span>
+                          </div>
+                          <div className="bank-info">
+                            <span>{result.binInfo?.bank}</span>
+                            <span>{result.binInfo?.country}</span>
+                          </div>
+                        </div>
+                        <div className="result-message">{result.message}</div>
+                      </div>
+                    ))}
+
+                    {dies.map((result) => (
+                      <div key={result.key} className="result-card die">
+                        <div className="card-number">{result.cc}</div>
+                        <div className="card-info">
+                          <div className="bin-info">
+                            <span>{result.binInfo?.brand}</span>
+                            <span>{result.binInfo?.type}</span>
+                            <span>{result.binInfo?.level}</span>
+                          </div>
+                          <div className="bank-info">
+                            <span>{result.binInfo?.bank}</span>
+                            <span>{result.binInfo?.country}</span>
+                          </div>
+                        </div>
+                        <div className="result-message">{result.message}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
+        </>
+      ) : (
+        <div className="loading">
+          <ReactLoading type="spinningBubbles" color="#00ff44" />
         </div>
-      </div>
+      )}
 
       <style jsx>{`
         .dashboard {
           min-height: 100vh;
           background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-          padding: clamp(10px, 2vw, 20px);
         }
 
         .dashboard-container {
-          max-width: 1200px;
+          display: flex;
+          padding: 20px;
+          gap: 20px;
+          max-width: 1400px;
           margin: 0 auto;
         }
 
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: clamp(15px, 3vw, 25px);
+        .sidebar {
+          width: 250px;
           background: rgba(0,255,68,0.03);
           border-radius: 15px;
           border: 1px solid rgba(0,255,68,0.1);
-          margin-bottom: 20px;
-          backdrop-filter: blur(10px);
+          padding: 20px;
+          height: fit-content;
+          position: sticky;
+          top: 90px;
         }
 
-        .gradient-text {
-          font-size: clamp(1.5rem, 3vw, 2rem);
-          background: linear-gradient(45deg, #00ff44, #00cc44);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          font-weight: bold;
-          margin-left: 10px;
-        }
-
-        .user-info {
+        .menu-items {
           display: flex;
-          gap: 15px;
-          align-items: center;
+          flex-direction: column;
+          gap: 10px;
         }
 
-        .balance {
-          background: rgba(0,255,68,0.1);
-          padding: 10px 20px;
+        .menu-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 15px;
           border-radius: 10px;
-          color: #00ff44;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          border: none;
+          background: transparent;
+          color: #fff;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          width: 100%;
+          text-align: left;
         }
 
-        .add-funds {
+        .menu-item:hover {
+          background: rgba(0,255,68,0.1);
+        }
+
+        .menu-item.active {
           background: linear-gradient(45deg, #00ff44, #00cc44);
           color: #000;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 10px;
-          cursor: pointer;
           font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.3s ease;
         }
 
-        .add-funds:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(0,255,68,0.2);
+        .menu-item.logout {
+          margin-top: 20px;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          padding-top: 20px;
+          color: #ff4444;
+        }
+
+        .menu-item.logout:hover {
+          background: rgba(255,68,68,0.1);
+        }
+
+        .content {
+          flex: 1;
         }
 
         .checker-container {
@@ -857,33 +910,23 @@ export default function Dashboard() {
         }
 
         @media (max-width: 768px) {
-          .dashboard-header {
-            flex-direction: column;
-            gap: 15px;
-            text-align: center;
-          }
-
-          .user-info {
+          .dashboard-container {
             flex-direction: column;
           }
 
-          .checker-type {
-            flex-direction: column;
+          .sidebar {
+            width: 100%;
+            position: static;
           }
 
-          .stats {
+          .menu-items {
+            flex-direction: row;
             flex-wrap: wrap;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .results-grid {
-            grid-template-columns: 1fr;
+            justify-content: center;
           }
 
-          .bin-info, .bank-info {
-            flex-direction: column;
-            gap: 5px;
+          .menu-item {
+            width: auto;
           }
         }
       `}</style>
