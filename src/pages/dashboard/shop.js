@@ -116,28 +116,55 @@ export default function Painel() {
   const handleSearch = async (e) => {
     setSearchingText("Searching...");
     setCards([]);
-    setTimeout(async () => {
+
+    const searchValue = e.target.value.trim();
+    
+    if (!searchValue) {
+      getData();
+      return;
+    }
+
+    try {
       const res = await axios.get(
-        "/api/cards?q=" + encodeURIComponent(e.target.value),
+        "/api/cards?q=" + encodeURIComponent(searchValue),
         {
           headers: { token: window.localStorage.getItem("token") },
         }
       );
 
-      if (cards.length < 1) {
+      if (res.data && Array.isArray(res.data)) {
+        if (res.data.length === 0) {
+          setSearchingText("No cards found!");
+          setCards([]);
+        } else {
+          const cardsWithColors = res.data.map((card) => ({
+            ...card,
+            color: getRandomColor()
+          }));
+          setCards(shuffle(cardsWithColors));
+          setSearchingText("Searching...");
+        }
       }
-
-      const cardsWithColors = res.data.map((card) => ({
-        ...card,
-        color: getRandomColor()
-      }));
-
-      setCards(shuffle(cardsWithColors));
-      if (res.data.length < 1) {
-        setTimeout(() => setSearchingText("Not found!"), 2000);
-      }
-    }, 2000);
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchingText("Error searching cards");
+      setCards([]);
+    }
   };
+
+  const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
+
+  const debouncedSearch = debounce(handleSearch, 500);
 
   const handleBuyCard = async (e) => {
     e.preventDefault();
@@ -288,7 +315,7 @@ export default function Painel() {
                   color: '#666'
                 }} />
                 <input
-                  onChange={handleSearch}
+                  onChange={debouncedSearch}
                   placeholder="Search cards (e.g. #US, platinum)"
                   style={{
                     width: '100%',
