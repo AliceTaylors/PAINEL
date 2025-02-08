@@ -21,7 +21,12 @@ import {
   faGem,
   faChartLine,
   faBolt,
-  faServer
+  faServer,
+  faBarcode,
+  faWallet,
+  faPlus,
+  faSpinner,
+  faPlay
 } from '@fortawesome/free-solid-svg-icons';
 import Head from 'next/head';
 import Skeleton from 'react-loading-skeleton';
@@ -168,7 +173,7 @@ const processPremiumResponse = (response, binInfo) => {
   return result;
 };
 
-export default function Painel() {
+export default function Dashboard() {
   const { t, lang } = useTranslation('dashboard');
   const [cards, setCards] = useState([]);
   const alerts = withReactContent(Swal);
@@ -495,194 +500,393 @@ export default function Painel() {
   };
 
   return (
-    <>
+    <div className="dashboard">
       <Head>
-        <title>SECCX.PRO | Premium Checker</title>
+        <title>SECCX.PRO | Dashboard</title>
       </Head>
 
-      {user ? (
-        <div className="root" style={{ width: '80%', margin: '0 auto' }}>
-          <Header user={user} />
+      <div className="dashboard-container">
+        <div className="dashboard-header">
+          <div className="logo">
+            <FontAwesomeIcon icon={faBarcode} />
+            <span className="gradient-text">SECCX.PRO</span>
+          </div>
+          
+          <div className="user-info">
+            <div className="balance">
+              <FontAwesomeIcon icon={faWallet} />
+              <span>${user?.balance.toFixed(2)}</span>
+            </div>
+            <button onClick={() => router.push('/dashboard/wallet')} className="add-funds">
+              <FontAwesomeIcon icon={faPlus} /> Add Funds
+            </button>
+          </div>
+        </div>
 
-          <div style={{
-            background: 'linear-gradient(145deg, #111 0%, #0a0a0a 100%)',
-            padding: '30px',
-            borderRadius: '20px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-            border: '1px solid #222'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '30px'
-            }}>
-              <div>
-                <h2 style={{
-                  fontSize: '24px',
-                  color: '#00ff44',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <FontAwesomeIcon icon={faCreditCard} />
-                  {checkerType === 'premium' ? 'Premium' : 'Adyen'} Checker
-                </h2>
-                <p style={{ color: '#666', marginTop: '5px' }}>
-                  {checkerType === 'premium' ? 
-                    'Premium Gateway ($1.00/live | $0.10/die)' : 
-                    'Adyen Gateway ($0.50/live)'}
-                </p>
-              </div>
+        <div className="checker-container">
+          <div className="checker-type">
+            <button 
+              className={checkerType === 'adyen' ? 'active' : ''}
+              onClick={() => setCheckerType('adyen')}
+            >
+              <FontAwesomeIcon icon={faCreditCard} /> Adyen
+              <span className="price">$0.50/live</span>
+            </button>
+            <button 
+              className={checkerType === 'premium' ? 'active' : ''}
+              onClick={() => setCheckerType('premium')}
+            >
+              <FontAwesomeIcon icon={faGem} /> Premium
+              <span className="price">$1.00/live</span>
+            </button>
+          </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                {['adyen', 'premium'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setCheckerType(type)}
-                    style={{
-                      background: checkerType === type ? '#00ff44' : '#111',
-                      color: checkerType === type ? '#000' : '#fff',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </button>
-                ))}
+          <div className="checker-form">
+            <textarea
+              placeholder="Format: 4532117190458043|11|2027|475"
+              onChange={(e) => setList(e.target.value)}
+              disabled={isChecking}
+            />
+            
+            <button 
+              onClick={handleCheck}
+              disabled={isChecking}
+              className="check-button"
+            >
+              {isChecking ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} spin /> Checking...
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faPlay} /> Start Check
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="results-container">
+            <div className="results-header">
+              <div className="stats">
+                <div className="stat">
+                  <span className="label">Lives</span>
+                  <span className="value live">{lives.length}</span>
+                </div>
+                <div className="stat">
+                  <span className="label">Dies</span>
+                  <span className="value die">{dies.length}</span>
+                </div>
+                <div className="stat">
+                  <span className="label">Total</span>
+                  <span className="value">{lives.length + dies.length}</span>
+                </div>
               </div>
             </div>
 
-            {!isChecking ? (
-              <form onSubmit={handleCheck}>
-                <textarea
-                  value={list}
-                  onChange={(e) => setList(e.target.value)}
-                  placeholder="Format: 4532117190458043|11|2027|475"
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    background: '#0a0a0a',
-                    border: '1px solid #222',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    color: '#fff',
-                    fontSize: '14px',
-                    marginBottom: '20px',
-                    fontFamily: 'monospace'
-                  }}
-                />
-
-                <button type="submit" style={{
-                  width: '100%',
-                  background: 'linear-gradient(45deg, #00ff44, #00cc44)',
-                  color: '#000',
-                  border: 'none',
-                  padding: '15px',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px'
-                }}>
-                  <FontAwesomeIcon icon={faRocket} />
-                  Start Check
-                </button>
-              </form>
-            ) : (
-              <div className="checker-status">
-                <h3 style={{ color: '#00ff44', marginBottom: '20px' }}>
-                  Checking in progress...
-                </h3>
-
-                <div style={{
-                  background: '#0a0a0a',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  marginBottom: '20px',
-                  border: '1px solid #222'
-                }}>
-                  <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-                    <span>Lives: <b style={{ color: '#00ff44' }}>{lives.length}</b></span>
-                    <span>Dies: <b style={{ color: '#ff4444' }}>{dies.length}</b></span>
-                    <span>Total: <b style={{ color: '#00aaff' }}>{lives.length + dies.length}</b></span>
+            <div className="results-grid">
+              {lives.map((result) => (
+                <div key={result.key} className="result-card live">
+                  <div className="card-number">{result.cc}</div>
+                  <div className="card-info">
+                    <div className="bin-info">
+                      <span>{result.binInfo?.brand}</span>
+                      <span>{result.binInfo?.type}</span>
+                      <span>{result.binInfo?.level}</span>
+                    </div>
+                    <div className="bank-info">
+                      <span>{result.binInfo?.bank}</span>
+                      <span>{result.binInfo?.country}</span>
+                    </div>
                   </div>
+                  <div className="result-message">{result.message}</div>
                 </div>
+              ))}
 
-                <button 
-                  onClick={handleStop}
-                  style={{
-                    background: '#ff4444',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    margin: '0 auto'
-                  }}
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                  Stop Check
-                </button>
-              </div>
-            )}
-
-            {(lives.length > 0 || dies.length > 0) && (
-              <div style={{ marginTop: '30px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ color: '#00ff44' }}>Lives ({lives.length})</h3>
-                  {lives.map(result => (
-                    <div key={result.key} style={{
-                      background: '#0a0a0a',
-                      border: '1px solid #00ff44',
-                      borderRadius: '8px',
-                      padding: '15px',
-                      marginBottom: '10px'
-                    }}>
-                      <div style={{ color: '#00ff44' }}>{result.cc}</div>
-                      <div style={{ color: '#666', fontSize: '12px' }}>
-                        {result.retorno || result.message}
-                      </div>
+              {dies.map((result) => (
+                <div key={result.key} className="result-card die">
+                  <div className="card-number">{result.cc}</div>
+                  <div className="card-info">
+                    <div className="bin-info">
+                      <span>{result.binInfo?.brand}</span>
+                      <span>{result.binInfo?.type}</span>
+                      <span>{result.binInfo?.level}</span>
                     </div>
-                  ))}
-                </div>
-
-                <div>
-                  <h3 style={{ color: '#ff4444' }}>Dies ({dies.length})</h3>
-                  {dies.map(result => (
-                    <div key={result.key} style={{
-                      background: '#0a0a0a',
-                      border: '1px solid #ff4444',
-                      borderRadius: '8px',
-                      padding: '15px',
-                      marginBottom: '10px'
-                    }}>
-                      <div style={{ color: '#ff4444' }}>{result.cc}</div>
-                      <div style={{ color: '#666', fontSize: '12px' }}>
-                        {result.retorno || result.message}
-                      </div>
+                    <div className="bank-info">
+                      <span>{result.binInfo?.bank}</span>
+                      <span>{result.binInfo?.country}</span>
                     </div>
-                  ))}
+                  </div>
+                  <div className="result-message">{result.message}</div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-
-          <Footer />
         </div>
-      ) : (
-        <ReactLoading type="spinningBubbles" color="#00ff44" />
-      )}
-    </>
+      </div>
+
+      <style jsx>{`
+        .dashboard {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+          padding: clamp(10px, 2vw, 20px);
+        }
+
+        .dashboard-container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: clamp(15px, 3vw, 25px);
+          background: rgba(0,255,68,0.03);
+          border-radius: 15px;
+          border: 1px solid rgba(0,255,68,0.1);
+          margin-bottom: 20px;
+          backdrop-filter: blur(10px);
+        }
+
+        .gradient-text {
+          font-size: clamp(1.5rem, 3vw, 2rem);
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-weight: bold;
+          margin-left: 10px;
+        }
+
+        .user-info {
+          display: flex;
+          gap: 15px;
+          align-items: center;
+        }
+
+        .balance {
+          background: rgba(0,255,68,0.1);
+          padding: 10px 20px;
+          border-radius: 10px;
+          color: #00ff44;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .add-funds {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.3s ease;
+        }
+
+        .add-funds:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(0,255,68,0.2);
+        }
+
+        .checker-container {
+          background: rgba(0,255,68,0.03);
+          border-radius: 20px;
+          border: 1px solid rgba(0,255,68,0.1);
+          padding: clamp(15px, 3vw, 30px);
+          backdrop-filter: blur(10px);
+        }
+
+        .checker-type {
+          display: flex;
+          gap: 15px;
+          margin-bottom: 20px;
+        }
+
+        .checker-type button {
+          flex: 1;
+          padding: 15px;
+          border-radius: 12px;
+          border: 1px solid rgba(0,255,68,0.1);
+          background: rgba(17,17,17,0.7);
+          color: #fff;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .checker-type button.active {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+        }
+
+        .price {
+          font-size: 0.8rem;
+          opacity: 0.8;
+        }
+
+        textarea {
+          width: 100%;
+          min-height: 150px;
+          padding: 15px;
+          border-radius: 12px;
+          border: 1px solid #222;
+          background: rgba(17,17,17,0.7);
+          color: #fff;
+          font-family: monospace;
+          font-size: 14px;
+          resize: vertical;
+          margin-bottom: 15px;
+          transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+          outline: none;
+          border-color: #00ff44;
+          box-shadow: 0 0 20px rgba(0,255,68,0.1);
+        }
+
+        .check-button {
+          width: 100%;
+          padding: 15px;
+          border-radius: 12px;
+          border: none;
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .check-button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .results-container {
+          margin-top: 30px;
+        }
+
+        .results-header {
+          margin-bottom: 20px;
+        }
+
+        .stats {
+          display: flex;
+          gap: 20px;
+          justify-content: center;
+        }
+
+        .stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .stat .label {
+          color: #666;
+          font-size: 0.9rem;
+        }
+
+        .stat .value {
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+
+        .value.live { color: #00ff44; }
+        .value.die { color: #ff4444; }
+
+        .results-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 15px;
+        }
+
+        .result-card {
+          background: rgba(17,17,17,0.7);
+          border-radius: 12px;
+          padding: 15px;
+          border: 1px solid rgba(0,255,68,0.1);
+        }
+
+        .result-card.live {
+          border-color: #00ff44;
+        }
+
+        .result-card.die {
+          border-color: #ff4444;
+        }
+
+        .card-number {
+          font-family: monospace;
+          font-size: 1.1rem;
+          margin-bottom: 10px;
+        }
+
+        .card-info {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          font-size: 0.9rem;
+          color: #666;
+        }
+
+        .bin-info, .bank-info {
+          display: flex;
+          gap: 10px;
+        }
+
+        .result-message {
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          font-size: 0.9rem;
+          color: #888;
+        }
+
+        @media (max-width: 768px) {
+          .dashboard-header {
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+          }
+
+          .user-info {
+            flex-direction: column;
+          }
+
+          .checker-type {
+            flex-direction: column;
+          }
+
+          .stats {
+            flex-wrap: wrap;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .results-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .bin-info, .bank-info {
+            flex-direction: column;
+            gap: 5px;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
