@@ -6,7 +6,8 @@ import {
   faCode,
   faRightFromBracket,
   faBarcode,
-  faRocket
+  faRocket,
+  faSearch
 } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -50,6 +51,12 @@ export default function Header({ user }) {
           <Link href="/dashboard/stresser">
             <a className={router.pathname === '/dashboard/stresser' ? 'active' : ''}>
               <FontAwesomeIcon icon={faRocket} /> Stresser
+            </a>
+          </Link>
+
+          <Link href="/dashboard/consulta">
+            <a className={router.pathname === '/dashboard/consulta' ? 'active' : ''}>
+              <FontAwesomeIcon icon={faSearch} /> Consulta
             </a>
           </Link>
         </nav>
