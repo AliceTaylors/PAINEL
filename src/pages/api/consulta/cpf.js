@@ -1,6 +1,4 @@
 import dbConnect from '../../../lib/dbConnect';
-import User from '../../../models/User';
-import { checkToken } from '../../../utils/auth';
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -8,21 +6,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  await dbConnect();
+  const db = await dbConnect();
 
   try {
     const { cpf } = req.body;
     const { token } = req.headers;
     
     // Verificar token e usuário
-    const validToken = checkToken(token);
-    if (!validToken) {
+    if (!token) {
       return res.send({ error: "Not allowed" });
     }
 
-    const user = await User.findOne({ _id: validToken.user._id });
+    const dbUser = await db.collection('users').findOne({ 
+      'sessions.token': token 
+    });
 
-    if (!user) {
+    if (!dbUser) {
       return res.status(401).json({ message: 'User not found' });
     }
 
@@ -30,7 +29,7 @@ export default async function handler(req, res) {
     const cost = 2.00;
 
     // Verificar saldo
-    if (user.balance < cost) {
+    if (dbUser.balance < cost) {
       return res.status(400).json({ message: 'Insufficient balance' });
     }
 
@@ -42,8 +41,8 @@ export default async function handler(req, res) {
     }
 
     // Atualizar saldo e logs do usuário
-    await User.updateOne(
-      { _id: user._id },
+    await db.collection('users').updateOne(
+      { _id: dbUser._id },
       {
         $push: {
           logs: {
