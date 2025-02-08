@@ -125,7 +125,7 @@ const formatCard = (cc) => {
 };
 
 // Função para processar o retorno do checker Adyen
-const processAdyenResponse = async (response, binInfo) => {
+const processAdyenResponse = (response, binInfo) => {
   const result = {
     card: response.cc,
     binInfo,
@@ -156,7 +156,7 @@ const processAdyenResponse = async (response, binInfo) => {
 };
 
 // Função para processar o retorno do checker Premium
-const processPremiumResponse = async (response, binInfo) => {
+const processPremiumResponse = (response, binInfo) => {
   const result = {
     card: response.cc,
     binInfo,
@@ -172,7 +172,7 @@ const processPremiumResponse = async (response, binInfo) => {
     }
   };
 
-  if (response.success && response.retorno.includes('Pagamento Aprovado')) {
+  if (response.success && response.retorno?.includes('Pagamento Aprovado')) {
     result.success = true;
     result.message = 'Pagamento Aprovado!';
   } else if (response.error) {
@@ -311,7 +311,7 @@ export default function Painel() {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = await processAdyenResponse({
+          const result = processAdyenResponse({
             cc,
             ...check.data,
             binInfo
@@ -333,11 +333,12 @@ export default function Painel() {
           }
         } catch (error) {
           console.error(error);
+          const binInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
           setDies(old => [{
             card: cc,
             success: false,
             message: 'Adyen Check Error',
-            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
+            binInfo
           }, ...old]);
         }
       }, 3000 * index);
@@ -375,7 +376,7 @@ export default function Painel() {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = await processPremiumResponse({
+          const result = processPremiumResponse({
             cc,
             ...check.data,
             binInfo
@@ -409,11 +410,12 @@ export default function Painel() {
           }
         } catch (error) {
           console.error(error);
+          const binInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
           setDies(old => [{
             card: cc,
             success: false,
             message: 'Premium Check Error',
-            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
+            binInfo
           }, ...old]);
         }
       }, 3000 * index);
