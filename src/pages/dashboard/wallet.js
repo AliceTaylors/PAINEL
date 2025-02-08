@@ -654,49 +654,49 @@ export default function Deposit() {
             </div>
             <Footer />
           </div>
+
+          <style jsx>{`
+            .crypto-icons {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              flex-wrap: wrap;
+              margin: 15px 0;
+            }
+
+            .crypto-icon {
+              width: 32px;
+              height: 32px;
+              transition: all 0.3s ease;
+              filter: brightness(0.9);
+              opacity: 0.8;
+              background: rgba(255,255,255,0.1);
+              padding: 5px;
+              border-radius: 50%;
+            }
+
+            .crypto-icon:hover {
+              filter: brightness(1);
+              opacity: 1;
+              transform: translateY(-2px);
+              background: rgba(255,255,255,0.2);
+            }
+
+            @media (max-width: 768px) {
+              .crypto-icons {
+                gap: 12px;
+              }
+              
+              .crypto-icon {
+                width: 28px;
+                height: 28px;
+                padding: 4px;
+              }
+            }
+          `}</style>
         </>
       )}
     </>
   );
 }
-
-<style jsx>{`
-  .crypto-icons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
-    margin: 15px 0;
-  }
-
-  .crypto-icon {
-    width: 32px;
-    height: 32px;
-    transition: all 0.3s ease;
-    filter: brightness(0.9);
-    opacity: 0.8;
-    background: rgba(255,255,255,0.1);
-    padding: 5px;
-    border-radius: 50%;
-  }
-
-  .crypto-icon:hover {
-    filter: brightness(1);
-    opacity: 1;
-    transform: translateY(-2px);
-    background: rgba(255,255,255,0.2);
-  }
-
-  @media (max-width: 768px) {
-    .crypto-icons {
-      gap: 12px;
-    }
-    
-    .crypto-icon {
-      width: 28px;
-      height: 28px;
-      padding: 4px;
-    }
-  }
-`}</style>
