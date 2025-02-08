@@ -8,6 +8,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import versionData from "../version.json";
 import { NextSeo } from "next-seo";
+import Link from 'next/link';
 
 export default function Login() {
   const [login, setLogin] = useState(null);
@@ -104,50 +105,177 @@ export default function Login() {
         }}
       />
       <Head>
-        <title>checkercc | Login</title>
+        <title>SECCX.PRO | Login</title>
       </Head>
-      <div className="root">
-        <form onSubmit={handleSubmit} className="login">
-          <h1 style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-            <FontAwesomeIcon icon={faBarcode} />
-            checker
-            <b style={{ color: "#6b21a8" }}>cc</b>
-          </h1>
-
-          <label style={{ margin: 0 }}>Username: </label>
-          <input
-            onChange={(e) => setLogin(e.target.value)}
-            type="text"
-            name=""
-            placeholder="username"
-            id=""
-          />
-
-          <label style={{ margin: 0 }}>Password: </label>
-          <input
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            name=""
-            placeholder="****"
-            id=""
-          />
-          <button>Log in </button>
-
-          <div
-            style={{ color: "#6b21a8", cursor: "pointer", marginTop: "10px" }}
-            onClick={() => router.push("/signup")}
-          >
-            <FontAwesomeIcon icon={faAdd} /> Create new account{" "}
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-header">
+            <h1>
+              <span className="gradient-text">SECCX.PRO</span>
+            </h1>
+            <p>Access your premium checker account</p>
           </div>
-          {status && (
-            <div style={{ opacity: 0.7 }}>
-              <span>
-                <b>Total users:</b> {status.totalUsers}
-              </span>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="input-group">
+              <FontAwesomeIcon icon={faUser} className="input-icon" />
+              <input
+                type="text"
+                placeholder="Username"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
+                required
+              />
             </div>
-          )}
-        </form>
+
+            <div className="input-group">
+              <FontAwesomeIcon icon={faLock} className="input-icon" />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="auth-button">
+              <FontAwesomeIcon icon={faRocket} />
+              Launch Platform
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <p>
+              Don't have an account?{' '}
+              <Link href="/signup">
+                <a className="auth-link">Create Account</a>
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {status && (
+          <div style={{ opacity: 0.7, marginTop: "20px" }}>
+            <span>
+              <b>Total users:</b> {status.totalUsers}
+            </span>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .auth-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+          padding: 20px;
+        }
+
+        .auth-container {
+          background: rgba(0,255,68,0.05);
+          padding: 40px;
+          border-radius: 20px;
+          border: 1px solid rgba(0,255,68,0.1);
+          width: 100%;
+          max-width: 400px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .auth-header {
+          text-align: center;
+          margin-bottom: 40px;
+        }
+
+        .gradient-text {
+          font-size: 2.5rem;
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-weight: bold;
+        }
+
+        .auth-header p {
+          color: #666;
+          margin-top: 10px;
+        }
+
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .input-group {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #00ff44;
+          font-size: 1.2rem;
+        }
+
+        input {
+          width: 100%;
+          padding: 15px 15px 15px 45px;
+          border-radius: 12px;
+          border: 1px solid #222;
+          background: #111;
+          color: #fff;
+          font-size: 1rem;
+          transition: all 0.3s ease;
+        }
+
+        input:focus {
+          outline: none;
+          border-color: #00ff44;
+          box-shadow: 0 0 20px rgba(0,255,68,0.1);
+        }
+
+        .auth-button {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          border: none;
+          padding: 15px;
+          border-radius: 12px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all 0.3s ease;
+        }
+
+        .auth-button:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 20px rgba(0,255,68,0.2);
+        }
+
+        .auth-footer {
+          text-align: center;
+          margin-top: 30px;
+          color: #666;
+        }
+
+        .auth-link {
+          color: #00ff44;
+          text-decoration: none;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .auth-link:hover {
+          text-decoration: underline;
+        }
+      `}</style>
     </>
   );
 }
