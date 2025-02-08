@@ -33,6 +33,22 @@ import AccountDetails from '../../components/AccountDetails';
 import Footer from '../../components/Footer';
 import useTranslation from 'next-translate/useTranslation';
 
+// Constantes para os checkers
+const CHECKER_CONFIG = {
+  adyen: {
+    liveCost: 0.20, // $0.20 por live
+    apiUrl: process.env.API_1_URL,
+    name: 'Adyen Gateway'
+  },
+  premium: {
+    liveCost: 1.00, // $1.00 por live
+    dieCost: 0.10, // $0.10 por die
+    maxConsecutiveDies: 20,
+    apiUrl: process.env.API_2_URL,
+    name: 'Premium Stripe Gateway'
+  }
+};
+
 export default function Painel() {
   const { t, lang } = useTranslation('dashboard');
   const [cards, setCards] = useState([]);
@@ -45,6 +61,7 @@ export default function Painel() {
   const router = useRouter();
   const [status, setStatus] = useState(null);
   const [premiumList, setPremiumList] = useState(null);
+  const [consecutiveDies, setConsecutiveDies] = useState(0);
 
   const getUser = async () => {
     const res = await axios.get('/api/sessions', {
@@ -119,66 +136,48 @@ export default function Painel() {
 
   async function handleCheck(e) {
     e.preventDefault();
-
     getUser();
 
-    if (user.balance < 0.5) {
-      return alerts
-        .fire({
-          icon: 'warning',
-          html: 'Insuficient funds to check cards. <b>Add funds now</b>!',
-        })
-        .then(() => {
-          router.push('/dashboard/wallet');
-        });
+    if (user.balance < CHECKER_CONFIG.adyen.liveCost) {
+      return alerts.fire({
+        icon: 'warning',
+        title: 'Insufficient Funds',
+        html: `You need at least $${CHECKER_CONFIG.adyen.liveCost} to check cards.<br/><b>Add funds now!</b>`,
+      }).then(() => router.push('/dashboard/wallet'));
     }
 
     setChecking(true);
-
-    const listFormated = String(list)
-      .split('\n')
-      .filter((n) => n);
-
-    if (!user) {
-      router.push('/');
-    }
+    const listFormated = String(list).split('\n').filter(n => n);
 
     listFormated.forEach(async (cc, index) => {
       setTimeout(async () => {
-        if (user.balance < 0.5) {
-          return alerts
-            .fire({
-              icon: 'warning',
-              html: 'Insuficient funds to check cards. <b>Recharge now</b>!',
-            })
-            .then(() => {
-              router.push('/dashboard/wallet');
-            });
+        if (user.balance < CHECKER_CONFIG.adyen.liveCost) {
+          return alerts.fire({
+            icon: 'warning',
+            html: 'Insufficient funds to continue checking.<br/><b>Add funds now!</b>'
+          }).then(() => router.push('/dashboard/wallet'));
         }
 
         const check = await axios.post(
-          '/api/checks',
+          CHECKER_CONFIG.adyen.apiUrl,
           {
             cc,
-            gateway_server:
-              'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
+            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
           },
           { headers: { token: window.localStorage.getItem('token') } }
         );
 
         const data = check.data;
-
         if (data.success) {
-          setLives((old) => [data, ...old]);
+          setLives(old => [data, ...old]);
         } else {
-          setDies((old) => [data, ...old]);
+          setDies(old => [data, ...old]);
         }
-        console.log(listFormated.length);
 
-        if (listFormated.length - 1 == lives + dies) {
+        if (listFormated.length - 1 === lives.length + dies.length) {
           alerts.fire({
             icon: 'success',
-            html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
+            html: `Check Complete!<br/>${listFormated.length} card(s) checked<br/>Lives: ${lives.length} | Dies: ${dies.length}`
           });
         }
       }, 3000 * index);
@@ -187,65 +186,58 @@ export default function Painel() {
 
   async function handlePremiumCheck(e) {
     e.preventDefault();
-
     getUser();
 
-    if (user.balance < 0.1) {
-      return alerts
-        .fire({
-          icon: 'warning',
-          html: 'Insufficient funds to check cards. <b>Add funds now</b>!',
-        })
-        .then(() => {
-          router.push('/dashboard/wallet');
-        });
+    if (user.balance < CHECKER_CONFIG.premium.liveCost) {
+      return alerts.fire({
+        icon: 'warning',
+        title: 'Insufficient Funds',
+        html: `You need at least $${CHECKER_CONFIG.premium.liveCost} for premium checking.<br/><b>Add funds now!</b>`,
+      }).then(() => router.push('/dashboard/wallet'));
     }
 
     setChecking(true);
-
-    const listFormated = String(premiumList)
-      .split('\n')
-      .filter((n) => n);
-
-    if (!user) {
-      router.push('/');
-    }
+    const listFormated = String(premiumList).split('\n').filter(n => n);
 
     listFormated.forEach(async (cc, index) => {
       setTimeout(async () => {
-        if (user.balance < 0.1) {
-          return alerts
-            .fire({
-              icon: 'warning',
-              html: 'Insufficient funds to check cards. <b>Recharge now</b>!',
-            })
-            .then(() => {
-              router.push('/dashboard/wallet');
-            });
+        if (consecutiveDies >= CHECKER_CONFIG.premium.maxConsecutiveDies) {
+          return alerts.fire({
+            icon: 'error',
+            title: 'Account Restricted',
+            html: 'Your account has been temporarily restricted due to excessive failed checks.<br/>Please contact support.'
+          });
+        }
+
+        if (user.balance < CHECKER_CONFIG.premium.dieCost) {
+          return alerts.fire({
+            icon: 'warning',
+            html: 'Insufficient funds to continue checking.<br/><b>Add funds now!</b>'
+          }).then(() => router.push('/dashboard/wallet'));
         }
 
         const check = await axios.post(
-          '/api/premium-checks',
+          CHECKER_CONFIG.premium.apiUrl,
           {
             cc,
-            gateway_server:
-              'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
+            gateway_server: 'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
           },
           { headers: { token: window.localStorage.getItem('token') } }
         );
 
         const data = check.data;
-
         if (data.success) {
-          setLives((old) => [data, ...old]);
+          setConsecutiveDies(0);
+          setLives(old => [data, ...old]);
         } else {
-          setDies((old) => [data, ...old]);
+          setConsecutiveDies(prev => prev + 1);
+          setDies(old => [data, ...old]);
         }
 
-        if (listFormated.length - 1 == lives.length + dies.length) {
+        if (listFormated.length - 1 === lives.length + dies.length) {
           alerts.fire({
             icon: 'success',
-            html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
+            html: `Premium Check Complete!<br/>${listFormated.length} card(s) checked<br/>Lives: ${lives.length} | Dies: ${dies.length}`
           });
         }
       }, 3000 * index);
@@ -409,7 +401,7 @@ export default function Painel() {
                 fontSize: '12px',
                 fontWeight: 'bold'
               }}>
-                ${checkerSettings.checkLiveCost * -1}/live
+                ${CHECKER_CONFIG.adyen.liveCost}/live
               </div>
 
               <h2 style={{
@@ -427,7 +419,7 @@ export default function Painel() {
                   fontWeight: 'normal',
                   marginLeft: '10px'
                 }}>
-                  Adyen Gateway
+                  {CHECKER_CONFIG.adyen.name}
                 </small>
               </h2>
 
@@ -524,7 +516,7 @@ export default function Painel() {
                 fontSize: '12px',
                 fontWeight: 'bold'
               }}>
-                $0.10/check
+                ${CHECKER_CONFIG.premium.liveCost}/live • ${CHECKER_CONFIG.premium.dieCost}/die
               </div>
 
               <div style={{
@@ -556,7 +548,7 @@ export default function Painel() {
                   marginLeft: '10px',
                   color: '#fff'
                 }}>
-                  Stripe Gateway
+                  {CHECKER_CONFIG.premium.name}
                 </small>
               </h2>
 
@@ -631,6 +623,16 @@ export default function Painel() {
                   </div>
                 </div>
               )}
+
+              <small style={{
+                display: 'block',
+                textAlign: 'center',
+                color: '#666',
+                marginTop: '10px',
+                fontSize: '12px'
+              }}>
+                ⚠️ Account will be restricted after {CHECKER_CONFIG.premium.maxConsecutiveDies} consecutive failed checks
+              </small>
             </div>
           </div>
 
