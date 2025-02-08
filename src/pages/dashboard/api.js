@@ -11,7 +11,9 @@ import {
   faServer,
   faCreditCard,
   faLock,
-  faGem
+  faGem,
+  faList,
+  faExchange
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -38,70 +40,68 @@ export default function ApiDocs() {
   }, []);
 
   return (
-    <>
+    <div className="api-docs">
       <Head>
         <title>SECCX.PRO | API Documentation</title>
       </Head>
-      {user && (
-        <div className="root" style={{ width: "80%" }}>
-          <Header user={user} />
 
-          <div className="api-docs">
+      <div className="container">
+        <Header user={user} />
+        
+        <div className="content">
+          <div className="api-header">
+            <h1>
+              <FontAwesomeIcon icon={faCode} className="icon-glow" /> 
+              API Documentation
+            </h1>
+            <p>Integrate our checker directly into your application</p>
+          </div>
+
+          <div className="api-section">
             <h2>
-              <FontAwesomeIcon icon={faCode} /> API Documentation
+              <FontAwesomeIcon icon={faServer} className="icon-pulse" /> 
+              Endpoint
             </h2>
+            <div className="endpoint-url">
+              <code>GET /api/external-check</code>
+            </div>
 
-            <div>
-              <span className="endpoint">
-                <FontAwesomeIcon icon={faServer} /> Endpoints
-              </span>
-              <br />
-              <small>
-                <FontAwesomeIcon icon={faInfoCircle} /> All requests must be made
-                with your credentials.
-              </small>
-              <br />
-              <br />
-              <div>
-                <span className="title-highlight">Check Cards</span>
-                <br />
-                <small>
-                  <FontAwesomeIcon icon={faCreditCard} /> Check your cards using
-                  our API.
-                </small>
-                <br />
-                <br />
-                <div className="request-response">
-                  <code>
-                    https://www.seccx.pro/api/external-check?user=USERNAME&password=PASSWORD&checker=TYPE&lista=CC|MM|YY|CVV
-                  </code>
+            <div className="params-section">
+              <h3>
+                <FontAwesomeIcon icon={faList} /> 
+                Parameters
+              </h3>
+              <div className="params-grid">
+                <div className="param-item">
+                  <span className="param-name">user</span>
+                  <span className="param-desc">Your username</span>
                 </div>
-                <br />
-                <span className="title-highlight">Parameters</span>
-                <br />
-                <small>
-                  <FontAwesomeIcon icon={faInfoCircle} /> Required parameters for API requests.
-                </small>
-                <br />
-                <br />
-                <div className="params">
-                  <ul>
-                    <li><strong>user:</strong> Your username</li>
-                    <li><strong>password:</strong> Your password</li>
-                    <li><strong>checker:</strong> adyen ($0.50/live) or premium ($1.00/live)</li>
-                    <li><strong>lista:</strong> Card in format CC|MM|YY|CVV</li>
-                  </ul>
+                <div className="param-item">
+                  <span className="param-name">password</span>
+                  <span className="param-desc">Your password</span>
                 </div>
-                <br />
-                <span className="title-highlight">Response Examples</span>
-                <br />
-                <small>
-                  <FontAwesomeIcon icon={faInfoCircle} /> Example responses from our API.
-                </small>
-                <br />
-                <br />
-                <div className="request-response">
-                  <FontAwesomeIcon icon={faCheckCircle} style={{color: "#00ff44"}} /> Live:
+                <div className="param-item">
+                  <span className="param-name">checker</span>
+                  <span className="param-desc">adyen or premium</span>
+                </div>
+                <div className="param-item">
+                  <span className="param-name">lista</span>
+                  <span className="param-desc">CC|MM|YY|CVV format</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="response-section">
+              <h3>
+                <FontAwesomeIcon icon={faExchange} /> 
+                Response Examples
+              </h3>
+              
+              <div className="response-grid">
+                <div className="response-card success">
+                  <div className="response-header">
+                    <FontAwesomeIcon icon={faCheckCircle} /> Live Response
+                  </div>
                   <pre>
                     {JSON.stringify({
                       status: "live",
@@ -114,11 +114,15 @@ export default function ApiDocs() {
                       }
                     }, null, 2)}
                   </pre>
+                </div>
 
-                  <FontAwesomeIcon icon={faTimesCircle} style={{color: "#ff4444"}} /> Die:
+                <div className="response-card error">
+                  <div className="response-header">
+                    <FontAwesomeIcon icon={faTimesCircle} /> Die Response
+                  </div>
                   <pre>
                     {JSON.stringify({
-                      status: "die", 
+                      status: "die",
                       msg: "#DIE - Cartão Recusado",
                       balance: "50.00",
                       details: {
@@ -128,98 +132,156 @@ export default function ApiDocs() {
                       }
                     }, null, 2)}
                   </pre>
-
-                  <FontAwesomeIcon icon={faInfoCircle} style={{color: "#ffaa00"}} /> Error:
-                  <pre>
-                    {JSON.stringify({
-                      status: "error",
-                      msg: "Insufficient funds",
-                      balance: "0.00"
-                    }, null, 2)}
-                  </pre>
                 </div>
               </div>
             </div>
           </div>
-
-          <Footer />
         </div>
-      )}
+      </div>
 
       <style jsx>{`
         .api-docs {
-          background: rgba(0,255,68,0.03);
-          border-radius: 20px;
-          border: 1px solid rgba(0,255,68,0.1);
-          padding: 30px;
-          margin: 20px 0;
+          min-height: 100vh;
+          background: #000;
+          color: #fff;
         }
 
-        .endpoint {
-          font-size: 1.5rem;
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem;
+        }
+
+        .api-header {
+          margin-bottom: 3rem;
+          text-align: center;
+        }
+
+        .api-header h1 {
+          font-size: 2.5rem;
           color: #00ff44;
+          margin-bottom: 1rem;
         }
 
-        .title-highlight {
-          color: #00ff44;
-          font-size: 1.2rem;
-          font-weight: 600;
+        .api-header p {
+          color: #888;
+          font-size: 1.1rem;
         }
 
-        .request-response {
+        .icon-glow {
+          filter: drop-shadow(0 0 8px #00ff44);
+        }
+
+        .icon-pulse {
+          animation: pulse 2s infinite;
+        }
+
+        .api-section {
           background: rgba(17,17,17,0.7);
-          padding: 20px;
-          border-radius: 12px;
           border: 1px solid #222;
-          margin: 10px 0;
-          font-family: monospace;
-          overflow-x: auto;
+          border-radius: 12px;
+          padding: 2rem;
+          margin-bottom: 2rem;
         }
 
-        code {
+        .endpoint-url {
+          background: #111;
+          padding: 1rem;
+          border-radius: 8px;
+          margin: 1rem 0;
+          font-family: monospace;
+        }
+
+        .params-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin: 1rem 0;
+        }
+
+        .param-item {
+          background: #111;
+          padding: 1rem;
+          border-radius: 8px;
+          border: 1px solid #222;
+        }
+
+        .param-name {
           color: #00ff44;
-          word-break: break-all;
+          font-family: monospace;
+          display: block;
+          margin-bottom: 0.5rem;
+        }
+
+        .param-desc {
+          color: #888;
+          font-size: 0.9rem;
+        }
+
+        .response-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 1.5rem;
+          margin-top: 1rem;
+        }
+
+        .response-card {
+          background: #111;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid #222;
+        }
+
+        .response-header {
+          padding: 1rem;
+          font-weight: bold;
+          border-bottom: 1px solid #222;
+        }
+
+        .success .response-header {
+          color: #00ff44;
+        }
+
+        .error .response-header {
+          color: #ff4444;
         }
 
         pre {
-          background: #111;
-          padding: 15px;
-          border-radius: 8px;
-          margin: 10px 0;
-          color: #888;
+          margin: 0;
+          padding: 1rem;
+          overflow-x: auto;
+          font-family: monospace;
+          font-size: 0.9rem;
         }
 
-        small {
-          color: #888;
-          display: inline-block;
-          margin: 5px 0;
-        }
-
-        .params ul {
-          list-style: none;
-          padding: 0;
-        }
-
-        .params li {
-          margin: 10px 0;
-          color: #888;
-        }
-
-        .params strong {
+        h2, h3 {
           color: #00ff44;
+          margin-bottom: 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
         }
 
         @media (max-width: 768px) {
-          .api-docs {
-            padding: 20px;
+          .container {
+            padding: 1rem;
           }
 
-          .request-response {
-            padding: 15px;
-            font-size: 0.9rem;
+          .api-header h1 {
+            font-size: 2rem;
+          }
+
+          .response-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
-    </>
+    </div>
   );
 }
