@@ -25,4 +25,4 @@ const userSchema = new mongoose.Schema({
   premium_block_until: Date
 });
 
-export default mongoose.models.User || mongoose.model('User', userSchema); 
+export default mongoose.models.User || mongoose.model('User', userSchema);
