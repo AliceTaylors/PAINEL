@@ -1,4 +1,4 @@
-import { connectToDatabase } from '../../../utils/mongodb';
+import { connectToDatabase } from '../../../utils/dbConnect';
 import axios from 'axios';
 
 export default async function handler(req, res) {
