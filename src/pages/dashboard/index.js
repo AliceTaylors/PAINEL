@@ -82,7 +82,7 @@ const formatCard = (cc) => {
 };
 
 // Função para processar o retorno do checker
-const processCheckerResponse = (response, binInfo) => {
+const processCheckerResponse = async (response, binInfo) => {
   const result = {
     card: response.cc,
     binInfo,
@@ -187,7 +187,7 @@ export default function Painel() {
   // Função para o checker Adyen
   async function handleCheck(e) {
     e.preventDefault();
-    getUser();
+    await getUser();
 
     if (user.balance < CHECKER_CONFIG.adyen.liveCost) {
       return alerts.fire({
@@ -202,7 +202,8 @@ export default function Painel() {
     setDies([]);
     const listFormated = String(list).split('\n').filter(n => n);
 
-    listFormated.forEach(async (cc, index) => {
+    for (let index = 0; index < listFormated.length; index++) {
+      const cc = listFormated[index];
       setTimeout(async () => {
         try {
           const cardData = formatCard(cc);
@@ -214,7 +215,7 @@ export default function Painel() {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = processCheckerResponse({
+          const result = await processCheckerResponse({
             cc,
             ...check.data,
             binInfo
@@ -236,21 +237,22 @@ export default function Painel() {
           }
         } catch (error) {
           console.error(error);
+          const errorBinInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
           setDies(old => [{
             card: cc,
             success: false,
             message: 'Check Error',
-            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
+            binInfo: errorBinInfo
           }, ...old]);
         }
       }, 3000 * index);
-    });
+    }
   }
 
   // Função para o checker Premium
   async function handlePremiumCheck(e) {
     e.preventDefault();
-    getUser();
+    await getUser();
 
     if (user.balance < CHECKER_CONFIG.premium.liveCost) {
       return alerts.fire({
@@ -265,7 +267,8 @@ export default function Painel() {
     setDies([]);
     const listFormated = String(premiumList).split('\n').filter(n => n);
 
-    listFormated.forEach(async (cc, index) => {
+    for (let index = 0; index < listFormated.length; index++) {
+      const cc = listFormated[index];
       setTimeout(async () => {
         try {
           const cardData = formatCard(cc);
@@ -277,7 +280,7 @@ export default function Painel() {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = processCheckerResponse({
+          const result = await processCheckerResponse({
             cc,
             ...check.data,
             binInfo
@@ -311,15 +314,16 @@ export default function Painel() {
           }
         } catch (error) {
           console.error(error);
+          const errorBinInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
           setDies(old => [{
             card: cc,
             success: false,
             message: 'Premium Check Error',
-            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
+            binInfo: errorBinInfo
           }, ...old]);
         }
       }, 3000 * index);
-    });
+    }
   }
 
   useEffect(() => {
