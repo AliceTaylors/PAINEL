@@ -265,18 +265,11 @@ export default function Painel() {
     e.preventDefault();
     await getUser();
 
-    if (!list || list.trim() === '') {
-      return alerts.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Please enter cards to check'
-      });
-    }
-
-    if (user.balance < 0.5) {
+    const minBalance = checkerType === 'premium' ? 1.0 : 0.5;
+    if (user.balance < minBalance) {
       return alerts.fire({
         icon: 'warning',
-        html: 'Insufficient funds to check cards. <b>Add funds now!</b>',
+        html: `Insufficient funds to check cards. <b>Add funds now!</b>`,
       }).then(() => router.push('/dashboard/wallet'));
     }
 
@@ -286,13 +279,6 @@ export default function Painel() {
     listFormated.forEach((cc, index) => {
       setTimeout(async () => {
         try {
-          if (user.balance < 0.5) {
-            return alerts.fire({
-              icon: 'warning',
-              html: 'Insufficient funds to check cards. <b>Recharge now!</b>',
-            }).then(() => router.push('/dashboard/wallet'));
-          }
-
           const check = await axios.post('/api/checks', {
             cc,
             checker: checkerType,
@@ -303,18 +289,36 @@ export default function Painel() {
 
           const data = check.data;
 
-          if (data.success) {
-            setLives(old => [{
-              ...data,
-              key: Date.now() + index,
-              checkedAt: new Date().toISOString()
-            }, ...old]);
+          // Processar resposta baseado no tipo de checker
+          if (checkerType === 'premium') {
+            if (data.success && data.retorno.includes('Pagamento Aprovado')) {
+              setLives(old => [{
+                ...data,
+                key: Date.now() + index,
+                checkedAt: new Date().toISOString()
+              }, ...old]);
+            } else {
+              setDies(old => [{
+                ...data,
+                key: Date.now() + index,
+                checkedAt: new Date().toISOString()
+              }, ...old]);
+            }
           } else {
-            setDies(old => [{
-              ...data,
-              key: Date.now() + index,
-              checkedAt: new Date().toISOString()
-            }, ...old]);
+            // Lógica original do Adyen
+            if (data.success) {
+              setLives(old => [{
+                ...data,
+                key: Date.now() + index,
+                checkedAt: new Date().toISOString()
+              }, ...old]);
+            } else {
+              setDies(old => [{
+                ...data,
+                key: Date.now() + index,
+                checkedAt: new Date().toISOString()
+              }, ...old]);
+            }
           }
 
           if (listFormated.length - 1 === index) {
@@ -499,29 +503,66 @@ export default function Painel() {
             background: 'linear-gradient(145deg, #111 0%, #0a0a0a 100%)',
             padding: '30px',
             borderRadius: '20px',
-            boxShadow: '0 10px 40px rgba(0,255,0,0.1)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
             border: '1px solid #222'
           }}>
             {!isChecking ? (
               <>
-                <div style={{ marginBottom: '30px' }}>
-                  <h2 style={{
-                    fontSize: '24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '15px',
-                    color: '#00ff44'
-                  }}>
-                    <FontAwesomeIcon icon={faCreditCard} />
-                    {checkerType === 'premium' ? 'Premium' : 'Standard'} Checker
-                    <span style={{
-                      fontSize: '14px',
-                      color: '#666',
-                      marginLeft: '10px'
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '30px'
+                }}>
+                  <div>
+                    <h2 style={{
+                      fontSize: '24px',
+                      color: '#00ff44',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
                     }}>
-                      {checkerType === 'premium' ? '$1.00/live | $0.10/die' : '$0.50/live'}
-                    </span>
-                  </h2>
+                      <FontAwesomeIcon icon={faCreditCard} />
+                      {checkerType === 'premium' ? 'Premium' : 'Adyen'} Checker
+                    </h2>
+                    <p style={{ color: '#666', marginTop: '5px' }}>
+                      {checkerType === 'premium' ? 
+                        'Premium Gateway ($1.00/live | $0.10/die)' : 
+                        'Adyen Gateway ($0.50/live)'}
+                    </p>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    gap: '10px'
+                  }}>
+                    <button
+                      onClick={() => setCheckerType('adyen')}
+                      style={{
+                        background: checkerType === 'adyen' ? '#00ff44' : '#111',
+                        color: checkerType === 'adyen' ? '#000' : '#fff',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Adyen
+                    </button>
+                    <button
+                      onClick={() => setCheckerType('premium')}
+                      style={{
+                        background: checkerType === 'premium' ? '#00ff44' : '#111',
+                        color: checkerType === 'premium' ? '#000' : '#fff',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Premium
+                    </button>
+                  </div>
                 </div>
 
                 <form onSubmit={handleCheck}>
@@ -537,28 +578,25 @@ export default function Painel() {
                       padding: '20px',
                       color: '#fff',
                       fontSize: '14px',
-                      fontFamily: 'monospace'
+                      marginBottom: '20px'
                     }}
                   />
 
-                  <button type="submit" style={{
-                    width: '100%',
-                    background: 'linear-gradient(45deg, #00ff44, #00cc44)',
-                    color: '#000',
-                    border: 'none',
-                    padding: '15px',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    marginTop: '20px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px'
-                  }}>
-                    <FontAwesomeIcon icon={faRocket} />
-                    Start Checking
+                  <button
+                    type="submit"
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(45deg, #00ff44, #00cc44)',
+                      color: '#000',
+                      border: 'none',
+                      padding: '15px',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faRocket} /> Start Check
                   </button>
                 </form>
               </>
