@@ -1,27 +1,15 @@
-// /lib/dbConnect.js
 import mongoose from "mongoose";
-
 import dotenv from "dotenv";
 dotenv.config();
-
-/** 
-Source : 
-https://github.com/vercel/next.js/blob/canary/examples/with-mongodb-mongoose/utils/dbConnect.js 
-**/
 
 const MONGODB_URI = process.env.MONGODB;
 
 if (!MONGODB_URI) {
   throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env"
+    "Please define the MONGODB environment variable inside .env"
   );
 }
 
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections growing exponentially
- * during API Route usage.
- */
 let cached = global.mongoose;
 
 if (!cached) {
@@ -54,4 +42,4 @@ async function dbConnect() {
   return cached.conn;
 }
 
-export default dbConnect;
+export default dbConnect; 
