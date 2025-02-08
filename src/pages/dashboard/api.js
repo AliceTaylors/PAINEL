@@ -63,7 +63,15 @@ export default function ApiDocs() {
               Endpoint
             </h2>
             <div className="endpoint-url">
-              <code>GET /api/external-check</code>
+              <code>
+                https://www.seccx.pro/api/external-check?user=YOUR_USERNAME&password=YOUR_PASSWORD&checker=CHECKER_TYPE&lista=CC|MM|YY|CVV
+              </code>
+              <div className="endpoint-example">
+                <span className="example-label">Example:</span>
+                <code>
+                  https://www.seccx.pro/api/external-check?user=john&password=123456&checker=premium&lista=4111111111111111|12|25|123
+                </code>
+              </div>
             </div>
 
             <div className="params-section">
@@ -186,10 +194,36 @@ export default function ApiDocs() {
 
         .endpoint-url {
           background: #111;
-          padding: 1rem;
+          padding: 1.5rem;
           border-radius: 8px;
           margin: 1rem 0;
           font-family: monospace;
+          border: 1px solid #222;
+        }
+
+        .endpoint-url code {
+          color: #00ff44;
+          word-break: break-all;
+          display: block;
+          line-height: 1.5;
+        }
+
+        .endpoint-example {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid #222;
+        }
+
+        .example-label {
+          display: block;
+          color: #888;
+          font-size: 0.9rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .endpoint-example code {
+          color: #888;
+          font-size: 0.9rem;
         }
 
         .params-grid {
