@@ -1,128 +1,39 @@
-import { faArrowRight, faBarcode } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import axios from "axios";
-import Head from "next/head";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faLock, 
+  faUser, 
+  faEnvelope, 
+  faGem 
+} from '@fortawesome/free-solid-svg-icons';
+import axios from 'axios';
+import Link from 'next/link';
+import Head from 'next/head';
 import { NextSeo } from "next-seo";
 import versionData from "../version.json";
 
-export default function Home() {
-  const [status, setStatus] = useState(null);
-  const [login, setLogin] = useState(null);
-  const [telegram, setTelegram] = useState(null);
-  const [password, setPassword] = useState(null);
-  const [passwordConfirmation, setPasswordConfirmation] = useState(null);
-  const alerts = withReactContent(Swal);
+export default function Signup() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const router = useRouter();
-  const [invalidUsername, setInvalidUsername] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (
-      login.indexOf(" ") > -1 ||
-      login.indexOf("-") > -1 ||
-      login.indexOf("@") > -1
-    ) {
-      return alerts.fire({
-        icon: "error",
-        text: "Invalid username. (Username ex.: user587)",
-      });
-    }
-
-    if (passwordConfirmation != password) {
-      return alerts.fire({
-        icon: "error",
-        text: "Wrong password confirmation",
-      });
-    }
-
-    if (String(login).length < 5) {
-      alerts.fire({
-        icon: "error",
-        text: "Username too short! Minimum is 5 characters.",
-      });
-      return;
-    }
-
-    const res = await axios.post("/api/users", {
-      login,
+    const res = await axios.post('/api/users', {
+      username,
       password,
-      mail: telegram,
+      email
     });
 
     if (res.data.error) {
-      alerts.fire({
-        icon: "error",
-        title: "Error!",
-        text: res.data.error,
-      });
-    } else if (res.data.success) {
-      alerts.fire({
-        icon: "success",
-        title: "Ready!",
-        text: "Redirecting...",
-        timer: 500,
-      });
-
-      window.localStorage.setItem("token", res.data.token);
-
-      router.push("/dashboard");
-    }
-  }
-
-  useEffect(() => {
-    async function getStatus() {
-      const res = await axios.get("/api/status");
-      setStatus(res.data);
-    }
-    getStatus();
-    async function checkLogin() {
-      const res = await axios.get("/api/sessions", {
-        headers: { token: window.localStorage.getItem("token") },
-      });
-
-      if (!res.data.error) {
-        router.push("/dashboard");
-        return;
-      }
-    }
-    function checkVersion() {
-      if (!window.localStorage.getItem(versionData.versionCode)) {
-        alerts.fire({
-          icon: "info",
-          title: "New version: " + versionData.versionCode + "!",
-          text: versionData.updates,
-        });
-        window.localStorage.setItem(versionData.versionCode, "true");
-      }
-    }
-    checkVersion();
-    checkLogin();
-  }, []);
-
-  function handleUsernameVerification(value) {
-    function isAlphaNumeric(str) {
-      var code, i, len;
-
-      for (i = 0, len = str.length; i < len; i++) {
-        code = str.charCodeAt(i);
-        if (
-          !(code > 47 && code < 58) && // numeric (0-9)
-          !(code > 64 && code < 91) && // upper alpha (A-Z)
-          !(code > 96 && code < 123)
-        ) {
-          // lower alpha (a-z)
-          return false;
-        }
-      }
-      return true;
+      alert(res.data.error);
+      return;
     }
 
-    setInvalidUsername(isAlphaNumeric(value) ? false : true);
+    router.push('/login');
   }
 
   return (
@@ -141,89 +52,180 @@ export default function Home() {
         }}
       />
       <Head>
-        <title>CHECKERCC | Register</title>
+        <title>SECCX.PRO | Create Account</title>
       </Head>
-      <div className="root">
-        <form onSubmit={handleSubmit} className="login">
-          <h1 style={{ cursor: "pointer" }} onClick={() => router.push("/")}>
-            <FontAwesomeIcon icon={faBarcode} />
-            checker
-            <b style={{ color: "#6b21a8" }}>cc</b>
-          </h1>
-          <h2>Sign up </h2>
-          <label htmlFor="" style={{ margin: 0 }}>
-            Username:
-          </label>
-          <input
-            minLength={5}
-            maxLength={16}
-            onChange={(e) => {
-              setLogin(e.target.value);
-              handleUsernameVerification(e.target.value);
-            }}
-            type="text"
-            name=""
-            placeholder="username (ex: crazy8) *"
-            id=""
-            style={invalidUsername ? { border: "1px solid #d00505" } : {}}
-          />
-          {invalidUsername && (
-            <small
-              style={{ fontSize: "12px", color: "#d00505", marginTop: "-15px" }}
-            >
-              Please enter an alphanumeric username!
-            </small>
-          )}
-          <label htmlFor="" style={{ margin: 0 }}>
-            Telegram:
-          </label>
-          <input
-            onChange={(e) => setTelegram(e.target.value)}
-            type="text"
-            name=""
-            placeholder="@DEV4NONYMOUS"
-            id=""
-          />
 
-          <label htmlFor="" style={{ margin: 0 }}>
-            Password:
-          </label>
-          <input
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            name=""
-            placeholder="password *"
-            id=""
-          />
-
-          <label htmlFor="" style={{ margin: 0 }}>
-            Confirm password:
-          </label>
-          <input
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            type="password"
-            name=""
-            placeholder="password confirmation *"
-            id=""
-          />
-          <button>Create account</button>
-
-          <div
-            style={{ color: "#6b21a8", cursor: "pointer" }}
-            onClick={() => router.push("/login")}
-          >
-            <FontAwesomeIcon icon={faArrowRight} /> Already registered? Log in
-            here
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-header">
+            <h1>
+              <span className="gradient-text">SECCX.PRO</span>
+            </h1>
+            <p>Create your premium checker account</p>
           </div>
 
-          {status && (
-            <div style={{ opacity: 0.7 }}>
-              <span>
-                <b>Total users:</b> {status.totalUsers}
-              </span>
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="input-group">
+              <FontAwesomeIcon icon={faUser} className="input-icon" />
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             </div>
-          )}
-        </form>
+
+            <div className="input-group">
+              <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <FontAwesomeIcon icon={faLock} className="input-icon" />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="auth-button">
+              <FontAwesomeIcon icon={faGem} />
+              Create Premium Account
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <p>
+              Already have an account?{' '}
+              <Link href="/login">
+                <a className="auth-link">Login</a>
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .auth-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            padding: 20px;
+          }
+
+          .auth-container {
+            background: rgba(0,255,68,0.05);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(0,255,68,0.1);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+          }
+
+          .auth-header {
+            text-align: center;
+            margin-bottom: 40px;
+          }
+
+          .gradient-text {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #00ff44, #00cc44);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+          }
+
+          .auth-header p {
+            color: #666;
+            margin-top: 10px;
+          }
+
+          .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+          }
+
+          .input-group {
+            position: relative;
+          }
+
+          .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #00ff44;
+            font-size: 1.2rem;
+          }
+
+          input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border-radius: 12px;
+            border: 1px solid #222;
+            background: #111;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+          }
+
+          input:focus {
+            outline: none;
+            border-color: #00ff44;
+            box-shadow: 0 0 20px rgba(0,255,68,0.1);
+          }
+
+          .auth-button {
+            background: linear-gradient(45deg, #00ff44, #00cc44);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+          }
+
+          .auth-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,255,68,0.2);
+          }
+
+          .auth-footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+          }
+
+          .auth-link {
+            color: #00ff44;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+          }
+
+          .auth-link:hover {
+            text-decoration: underline;
+          }
+        `}</style>
       </div>
     </>
   );
