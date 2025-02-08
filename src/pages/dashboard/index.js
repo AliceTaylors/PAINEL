@@ -52,20 +52,63 @@ const CHECKER_CONFIG = {
 // Função para obter informações do BIN
 const getBinInfo = async (bin) => {
   try {
-    const res = await axios.get(`https://lookup.binlist.net/${bin}`);
-    return {
-      bank: res.data.bank?.name || 'Unknown',
-      type: res.data.type?.toUpperCase() || 'Unknown',
-      brand: res.data.brand?.toUpperCase() || 'Unknown',
-      country: res.data.country?.name || 'Unknown',
+    const res = await axios.get(`https://lookup.binlist.net/${bin}`, {
+      headers: {
+        'Accept-Version': '3',
+        'Accept': 'application/json'
+      }
+    });
+
+    // Mapeamento de bandeiras
+    const brandMap = {
+      'visa': 'VISA',
+      'mastercard': 'MASTERCARD',
+      'american express': 'AMEX',
+      'discover': 'DISCOVER',
+      'jcb': 'JCB',
+      'diners club': 'DINERS'
     };
-  } catch {
-    return {
-      bank: 'Unknown',
-      type: 'Unknown',
-      brand: 'Unknown',
-      country: 'Unknown'
+
+    // Mapeamento de tipos
+    const typeMap = {
+      'credit': 'CREDIT',
+      'debit': 'DEBIT',
+      'prepaid': 'PREPAID'
     };
+
+    return {
+      bank: res.data.bank?.name || res.data.bank?.organization || 'Unknown Bank',
+      type: typeMap[res.data.type?.toLowerCase()] || res.data.type?.toUpperCase() || 'Unknown Type',
+      brand: brandMap[res.data.scheme?.toLowerCase()] || res.data.scheme?.toUpperCase() || 'Unknown Brand',
+      country: res.data.country?.name || res.data.country?.emoji || 'Unknown Country',
+      level: res.data.brand?.toLowerCase().includes('platinum') ? 'PLATINUM' : 
+             res.data.brand?.toLowerCase().includes('business') ? 'BUSINESS' : 
+             res.data.brand?.toLowerCase().includes('corporate') ? 'CORPORATE' : 'CLASSIC'
+    };
+  } catch (error) {
+    console.error('BIN lookup error:', error);
+    
+    // Identificação básica pela numeração
+    const firstDigit = bin?.charAt(0);
+    let basicInfo = {
+      bank: 'Unknown Bank',
+      type: 'CREDIT',
+      brand: 'Unknown Brand',
+      country: 'Unknown Country',
+      level: 'CLASSIC'
+    };
+
+    if (firstDigit === '4') {
+      basicInfo.brand = 'VISA';
+    } else if (firstDigit === '5') {
+      basicInfo.brand = 'MASTERCARD';
+    } else if (firstDigit === '3') {
+      basicInfo.brand = ['4','7'].includes(bin?.charAt(1)) ? 'AMEX' : 'JCB';
+    } else if (firstDigit === '6') {
+      basicInfo.brand = 'DISCOVER';
+    }
+
+    return basicInfo;
   }
 };
 
@@ -81,19 +124,72 @@ const formatCard = (cc) => {
   };
 };
 
-// Função para processar o retorno do checker
-const processCheckerResponse = async (response, binInfo) => {
+// Função para processar o retorno do checker Adyen
+const processAdyenResponse = async (response, binInfo) => {
   const result = {
     card: response.cc,
     binInfo,
-    message: response.retorno || 'Unknown Response',
-    success: false
+    message: '',
+    success: false,
+    details: {
+      number: response.cc?.split('|')[0] || '',
+      brand: binInfo.brand,
+      type: binInfo.type,
+      bank: binInfo.bank,
+      country: binInfo.country,
+      level: binInfo.level
+    }
+  };
+
+  if (response.success && response.retorno?.includes('Pagamento Aprovado')) {
+    result.success = true;
+    result.message = 'Pagamento Aprovado! [00]';
+  } else if (response.error) {
+    result.success = false;
+    result.message = response.retorno || 'Cartão Invalido!';
+  } else {
+    result.success = false;
+    result.message = 'Sua Transação Foi Negada!';
+  }
+
+  return result;
+};
+
+// Função para processar o retorno do checker Premium
+const processPremiumResponse = async (response, binInfo) => {
+  const result = {
+    card: response.cc,
+    binInfo,
+    message: '',
+    success: false,
+    details: {
+      number: response.cc?.split('|')[0] || '',
+      brand: binInfo.brand,
+      type: binInfo.type,
+      bank: binInfo.bank,
+      country: binInfo.country,
+      level: binInfo.level
+    }
   };
 
   if (response.success && response.retorno.includes('Pagamento Aprovado')) {
     result.success = true;
+    result.message = 'Pagamento Aprovado!';
   } else if (response.error) {
     result.success = false;
+    switch (response.retorno) {
+      case 'CARD_EXPIRED':
+        result.message = 'Cartão Expirado!';
+        break;
+      case 'CARD_NOT_SUPPORTED':
+        result.message = 'Cartão Não Suportado!';
+        break;
+      default:
+        result.message = 'Cartão Invalido!';
+    }
+  } else {
+    result.success = false;
+    result.message = 'Sua Transação Foi Negada!';
   }
 
   return result;
@@ -215,7 +311,7 @@ export default function Painel() {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = await processCheckerResponse({
+          const result = await processAdyenResponse({
             cc,
             ...check.data,
             binInfo
@@ -237,12 +333,11 @@ export default function Painel() {
           }
         } catch (error) {
           console.error(error);
-          const errorBinInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
           setDies(old => [{
             card: cc,
             success: false,
-            message: 'Check Error',
-            binInfo: errorBinInfo
+            message: 'Adyen Check Error',
+            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
           }, ...old]);
         }
       }, 3000 * index);
@@ -280,7 +375,7 @@ export default function Painel() {
             headers: { token: window.localStorage.getItem('token') }
           });
 
-          const result = await processCheckerResponse({
+          const result = await processPremiumResponse({
             cc,
             ...check.data,
             binInfo
@@ -314,12 +409,11 @@ export default function Painel() {
           }
         } catch (error) {
           console.error(error);
-          const errorBinInfo = await getBinInfo(cc.split('|')[0]?.slice(0,6));
           setDies(old => [{
             card: cc,
             success: false,
             message: 'Premium Check Error',
-            binInfo: errorBinInfo
+            binInfo: await getBinInfo(cc.split('|')[0]?.slice(0,6))
           }, ...old]);
         }
       }, 3000 * index);
@@ -578,14 +672,18 @@ export default function Painel() {
                             {card.card}
                           </span>
                           <span style={{ color: '#888' }}>
-                            {card.binInfo.brand} | {card.binInfo.type}
+                            {card.details.brand} | {card.details.type}
                           </span>
                         </div>
                         <div style={{
                           fontSize: '12px',
-                          color: '#666'
+                          color: '#666',
+                          display: 'flex',
+                          justifyContent: 'space-between'
                         }}>
-                          {card.binInfo.bank} | {card.binInfo.country}
+                          <span>{card.details.bank}</span>
+                          <span>{card.details.country}</span>
+                          <span>{card.details.level}</span>
                         </div>
                         <div style={{
                           marginTop: '5px',
@@ -729,14 +827,18 @@ export default function Painel() {
                             {card.card}
                           </span>
                           <span style={{ color: '#888' }}>
-                            {card.binInfo.brand} | {card.binInfo.type}
+                            {card.details.brand} | {card.details.type}
                           </span>
                         </div>
                         <div style={{
                           fontSize: '12px',
-                          color: '#666'
+                          color: '#666',
+                          display: 'flex',
+                          justifyContent: 'space-between'
                         }}>
-                          {card.binInfo.bank} | {card.binInfo.country}
+                          <span>{card.details.bank}</span>
+                          <span>{card.details.country}</span>
+                          <span>{card.details.level}</span>
                         </div>
                         <div style={{
                           marginTop: '5px',
