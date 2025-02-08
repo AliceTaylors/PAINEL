@@ -46,8 +46,8 @@ export default function Header({ user }) {
           </button>
 
           <button 
-            className={`nav-item ${router.pathname === '/api' ? 'active' : ''}`}
-            onClick={() => router.push('/api')}
+            className={`nav-item ${router.pathname === '/dashboard/api' ? 'active' : ''}`}
+            onClick={() => router.push('/dashboard/api')}
           >
             <FontAwesomeIcon icon={faCode} />
             <span>API Docs</span>
