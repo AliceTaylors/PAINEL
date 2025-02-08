@@ -1,147 +1,205 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faHome,
   faWallet,
-  faShoppingCart,
-  faCode,
-  faSignOutAlt,
-  faUserCircle,
-  faChartLine,
-  faRocket
+  faHome,
+  faShop,
+  faGear,
+  faRightFromBracket,
+  faUser,
+  faBarcode
 } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'next/router';
-import useTranslation from 'next-translate/useTranslation';
 
 export default function Header({ user }) {
   const router = useRouter();
-  const { t } = useTranslation('common');
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/');
-  };
-
-  const handleWalletClick = () => {
-    router.push('/dashboard/wallet');
-  };
 
   return (
-    <header style={{
-      background: '#111',
-      padding: '20px',
-      borderRadius: '15px',
-      marginBottom: '20px'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div 
-          onClick={() => router.push('/dashboard')}
-          style={{
-            fontSize: '1.5em',
-            fontWeight: 'bold',
-            color: '#00ff00',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-        >
-          <FontAwesomeIcon icon={faRocket} />
-          SECCX<span style={{ color: '#fff' }}>.PRO</span>
+    <header className="header">
+      <div className="header-container">
+        <div className="logo" onClick={() => router.push('/dashboard')}>
+          <FontAwesomeIcon icon={faBarcode} />
+          <span className="gradient-text">SECCX.PRO</span>
         </div>
 
-        {user && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '15px'
-          }}>
-            <div style={{
-              background: 'rgba(0,255,0,0.1)',
-              padding: '8px 15px',
-              borderRadius: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <FontAwesomeIcon icon={faUserCircle} style={{ color: '#00ff00' }} />
-              <span style={{ color: '#fff' }}>{user.login}</span>
-            </div>
-            <div 
-              onClick={handleWalletClick}
-              style={{
-                background: 'rgba(0,255,0,0.1)',
-                padding: '8px 15px',
-                borderRadius: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer'
+        <nav className="nav-menu">
+          <button 
+            className={`nav-item ${router.pathname === '/dashboard' ? 'active' : ''}`}
+            onClick={() => router.push('/dashboard')}
+          >
+            <FontAwesomeIcon icon={faHome} />
+            <span>Dashboard</span>
+          </button>
+
+          <button 
+            className={`nav-item ${router.pathname === '/dashboard/wallet' ? 'active' : ''}`}
+            onClick={() => router.push('/dashboard/wallet')}
+          >
+            <FontAwesomeIcon icon={faWallet} />
+            <span>Wallet</span>
+          </button>
+
+          <button 
+            className={`nav-item ${router.pathname === '/dashboard/shop' ? 'active' : ''}`}
+            onClick={() => router.push('/dashboard/shop')}
+          >
+            <FontAwesomeIcon icon={faShop} />
+            <span>Shop</span>
+          </button>
+
+          {user?.admin && (
+            <button 
+              className={`nav-item ${router.pathname === '/administration' ? 'active' : ''}`}
+              onClick={() => router.push('/administration')}
+            >
+              <FontAwesomeIcon icon={faGear} />
+              <span>Admin</span>
+            </button>
+          )}
+        </nav>
+
+        <div className="user-controls">
+          <div className="balance">
+            <FontAwesomeIcon icon={faWallet} />
+            <span>${user?.balance?.toFixed(2)}</span>
+          </div>
+
+          <div className="user-menu">
+            <button 
+              className="nav-item logout"
+              onClick={() => {
+                window.localStorage.removeItem('token');
+                router.push('/');
               }}
             >
-              <FontAwesomeIcon icon={faChartLine} style={{ color: '#00ff00' }} />
-              <span style={{ color: '#fff' }}>${user.balance.toFixed(2)}</span>
-            </div>
+              <FontAwesomeIcon icon={faRightFromBracket} />
+              <span>Logout</span>
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
-      <nav style={{
-        marginTop: '20px',
-        display: 'flex',
-        gap: '10px',
-        flexWrap: 'wrap'
-      }}>
-        {[
-          { path: '/dashboard', icon: faHome, label: t('home') },
-          { path: '/dashboard/wallet', icon: faWallet, label: t('wallet') },
-          { path: '/dashboard/shop', icon: faShoppingCart, label: t('shop') },
-          { path: '/dashboard/api', icon: faCode, label: 'API' }
-        ].map(({ path, icon, label }) => (
-          <button
-            key={path}
-            onClick={() => router.push(path)}
-            style={{
-              padding: '10px 20px',
-              background: router.pathname === path ? 'rgba(0,255,0,0.1)' : '#1a1a1a',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px'
-            }}
-          >
-            <FontAwesomeIcon icon={icon} style={{ color: '#00ff00' }} />
-            {label}
-          </button>
-        ))}
+      <style jsx>{`
+        .header {
+          background: rgba(0,255,68,0.03);
+          border-bottom: 1px solid rgba(0,255,68,0.1);
+          backdrop-filter: blur(10px);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
 
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '10px 20px',
-            background: 'rgba(255,0,0,0.1)',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#fff',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginLeft: 'auto',
-            fontSize: '14px'
-          }}
-        >
-          <FontAwesomeIcon icon={faSignOutAlt} style={{ color: '#ff4444' }} />
-          {t('logout')}
-        </button>
-      </nav>
+        .header-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 15px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+        }
+
+        .gradient-text {
+          font-size: clamp(1.2rem, 2vw, 1.5rem);
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-weight: bold;
+        }
+
+        .nav-menu {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .nav-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 15px;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: #fff;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
+        }
+
+        .nav-item:hover {
+          background: rgba(0,255,68,0.1);
+        }
+
+        .nav-item.active {
+          background: linear-gradient(45deg, #00ff44, #00cc44);
+          color: #000;
+          font-weight: 600;
+        }
+
+        .nav-item.logout {
+          color: #ff4444;
+        }
+
+        .nav-item.logout:hover {
+          background: rgba(255,68,68,0.1);
+        }
+
+        .user-controls {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+
+        .balance {
+          background: rgba(0,255,68,0.1);
+          padding: 8px 15px;
+          border-radius: 8px;
+          color: #00ff44;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+          .header-container {
+            flex-direction: column;
+            padding: 10px;
+          }
+
+          .nav-menu {
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+
+          .user-controls {
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+
+          .nav-item span {
+            display: none;
+          }
+
+          .nav-item {
+            padding: 8px;
+          }
+
+          .balance {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
     </header>
   );
 }
