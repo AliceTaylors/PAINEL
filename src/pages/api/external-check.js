@@ -53,6 +53,30 @@ function isUserBlocked(user, checkerType) {
   return false;
 }
 
+// Função para obter info da BIN
+async function getBinInfo(bin) {
+  try {
+    const res = await axios.get(`https://lookup.binlist.net/${bin}`);
+    return {
+      bank: res.data.bank?.name || 'Unknown Bank',
+      type: res.data.type?.toUpperCase() || 'Unknown Type',
+      brand: res.data.scheme?.toUpperCase() || 'Unknown Brand',
+      country: res.data.country?.name || 'Unknown Country',
+      level: res.data.brand?.toLowerCase().includes('platinum') ? 'PLATINUM' : 
+             res.data.brand?.toLowerCase().includes('business') ? 'BUSINESS' : 
+             res.data.brand?.toLowerCase().includes('corporate') ? 'CORPORATE' : 'CLASSIC'
+    };
+  } catch {
+    return {
+      bank: 'Unknown Bank',
+      type: 'Unknown Type',
+      brand: 'Unknown Brand',
+      country: 'Unknown Country',
+      level: 'Unknown Level'
+    };
+  }
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
@@ -120,6 +144,11 @@ export default async function handler(req, res) {
       });
     }
 
+    // Extrair informações do cartão
+    const [cc, month, year, cvv] = lista.split('|');
+    const bin = cc.slice(0, 6);
+    const binInfo = await getBinInfo(bin);
+
     // Make API request
     const API_RESULT = await axios.get(config.apiUrl + lista);
 
@@ -127,7 +156,10 @@ export default async function handler(req, res) {
     if (API_RESULT.data.error) {
       return res.json({
         status: "error",
-        msg: API_RESULT.data.retorno
+        msg: API_RESULT.data.retorno,
+        cc: lista,
+        bin: binInfo,
+        balance: dbUser.balance.toFixed(2)
       });
     }
 
@@ -142,7 +174,10 @@ export default async function handler(req, res) {
         });
         return res.json({
           status: "error",
-          msg: `Too many consecutive dies. You are blocked from using ${checker} checker for 24 hours.`
+          msg: `Too many consecutive dies. You are blocked from using ${checker} checker for 24 hours.`,
+          cc: lista,
+          bin: binInfo,
+          balance: dbUser.balance.toFixed(2)
         });
       }
 
@@ -161,7 +196,17 @@ export default async function handler(req, res) {
       return res.json({
         status: "die",
         msg: API_RESULT.data.retorno,
-        balance: (dbUser.balance + config.dieCost).toFixed(2)
+        cc: lista,
+        bin: binInfo,
+        balance: (dbUser.balance + config.dieCost).toFixed(2),
+        details: {
+          number: cc,
+          month,
+          year,
+          cvv,
+          checker: checker.toUpperCase(),
+          time: new Date().toISOString()
+        }
       });
     }
 
@@ -183,7 +228,17 @@ export default async function handler(req, res) {
       return res.json({
         status: "live",
         msg: API_RESULT.data.retorno,
-        balance: (dbUser.balance + config.liveCost).toFixed(2)
+        cc: lista,
+        bin: binInfo,
+        balance: (dbUser.balance + config.liveCost).toFixed(2),
+        details: {
+          number: cc,
+          month,
+          year,
+          cvv,
+          checker: checker.toUpperCase(),
+          time: new Date().toISOString()
+        }
       });
     }
 
@@ -191,7 +246,9 @@ export default async function handler(req, res) {
     console.error(error);
     return res.json({
       status: "error",
-      msg: "Internal server error"
+      msg: "Internal server error",
+      cc: lista,
+      balance: dbUser?.balance?.toFixed(2)
     });
   }
 } 
