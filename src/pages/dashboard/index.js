@@ -168,7 +168,6 @@ export default function Painel() {
               const { status, message } = response.data;
 
               if (status === "live") {
-                // Log para debug
                 console.log('Live card detected:', cc);
                 
                 setLives((old) => [{
