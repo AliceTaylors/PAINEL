@@ -155,20 +155,23 @@ export default function Painel() {
             // Fazer requisição ao checker apropriado
             const API_URL = checkerType === 'adyen' ? process.env.NEXT_PUBLIC_API_1_URL : process.env.NEXT_PUBLIC_API_2_URL;
             
+            // Montar a URL com os parâmetros no formato correto
+            const fullUrl = `${API_URL}/${cc}`;
+
             try {
-              const checkResult = await axios.get(`${API_URL}`, {
-                params: {
-                  cc: number,
-                  month: month,
-                  year: year,
-                  cvv: cvv
+              const checkResult = await axios.get(fullUrl, {
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
                 },
-                timeout: 30000 // 30 segundos timeout
+                timeout: 30000
               });
+
+              const data = checkResult.data;
 
               if (checkerType === 'adyen') {
                 // Processar resposta do Adyen
-                if (checkResult.data.live === true) {
+                if (data.live === true) {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
@@ -183,7 +186,7 @@ export default function Painel() {
                   }, {
                     headers: { token: window.localStorage.getItem('token') }
                   });
-                } else if (checkResult.data.invalid) {
+                } else {
                   setDies((old) => [{
                     return: "#DIE",
                     cc: cc,
@@ -193,22 +196,14 @@ export default function Painel() {
                 }
               } else {
                 // Processar resposta do Premium
-                if (checkResult.data.error) {
+                if (data.error) {
                   setDies((old) => [{
                     return: "#ERROR",
                     cc: cc,
-                    bin: checkResult.data.retorno,
+                    bin: data.retorno,
                     key: crypto.randomUUID()
                   }, ...old]);
-
-                  await axios.post('/api/update-balance', {
-                    amount: -0.10,
-                    type: 'PREMIUM DIE',
-                    data: cc
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-                } else if (checkResult.data.success) {
+                } else if (data.success && data.retorno.includes('Pagamento Aprovado')) {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
@@ -246,10 +241,16 @@ export default function Painel() {
 
             } catch (apiError) {
               console.error('API Error:', apiError);
+              // Tentar obter mensagem de erro mais específica
+              const errorMessage = apiError.response?.data?.retorno || 
+                                 apiError.response?.data?.message || 
+                                 apiError.message || 
+                                 "API Connection Error";
+              
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: apiError.response?.data?.retorno || "API Connection Error",
+                bin: binInfo, // Manter as informações do BIN mesmo com erro
                 key: crypto.randomUUID()
               }, ...old]);
             }
@@ -268,7 +269,7 @@ export default function Painel() {
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "System Error",
+              bin: binInfo || "System Error", // Usar BIN se disponível
               key: crypto.randomUUID()
             }, ...old]);
           }
@@ -298,7 +299,7 @@ export default function Painel() {
       const country = data.country?.name || 'Unknown';
       const bank = data.bank?.name || 'Unknown Bank';
       
-      return `${scheme} ${type} ${brand} - ${country} - ${bank}`.trim();
+      return `${type} ${brand} / ${bank} / # ${country}`.trim();
     } catch (error) {
       return `BIN: ${cc.split('|')[0].slice(0, 6)}`;
     }
