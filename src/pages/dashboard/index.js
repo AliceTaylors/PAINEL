@@ -162,61 +162,38 @@ export default function Painel() {
                 checker: checkerType
               });
 
-              if (checkerType === 'adyen') {
-                if (response.data.status === "live") {
-                  setLives((old) => [{
-                    return: "#LIVE",
-                    cc: cc,
-                    bin: `${binInfo} / Approved`,
-                    key: crypto.randomUUID()
-                  }, ...old]);
+              const { status, message } = response.data;
 
-                  await axios.post('/api/update-balance', {
-                    amount: -0.50,
-                    type: 'ADYEN LIVE',
-                    data: cc
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-                } else {
-                  setDies((old) => [{
-                    return: "#DIE",
-                    cc: cc,
-                    bin: `${binInfo} / Declined`,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-                }
+              if (status === "live") {
+                setLives((old) => [{
+                  return: "#LIVE",
+                  cc: cc,
+                  bin: `${binInfo} / ${message}`,
+                  key: crypto.randomUUID()
+                }, ...old]);
+
+                // Atualizar saldo
+                await axios.post('/api/update-balance', {
+                  amount: checkerType === 'adyen' ? -0.50 : -1.00,
+                  type: `${checkerType.toUpperCase()} LIVE`,
+                  data: cc
+                }, {
+                  headers: { token: window.localStorage.getItem('token') }
+                });
+              } else if (status === "error") {
+                setDies((old) => [{
+                  return: "#ERROR",
+                  cc: cc,
+                  bin: `${binInfo} / ${message}`,
+                  key: crypto.randomUUID()
+                }, ...old]);
               } else {
-                if (response.data.status === "live") {
-                  setLives((old) => [{
-                    return: "#LIVE",
-                    cc: cc,
-                    bin: `${binInfo} / ${response.data.message}`,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-
-                  await axios.post('/api/update-balance', {
-                    amount: -1.00,
-                    type: 'PREMIUM LIVE',
-                    data: cc
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-                } else if (response.data.status === "error") {
-                  setDies((old) => [{
-                    return: "#ERROR",
-                    cc: cc,
-                    bin: `${binInfo} / ${response.data.message}`,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-                } else {
-                  setDies((old) => [{
-                    return: "#DIE",
-                    cc: cc,
-                    bin: `${binInfo} / ${response.data.message}`,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-                }
+                setDies((old) => [{
+                  return: "#DIE",
+                  cc: cc,
+                  bin: `${binInfo} / ${message}`,
+                  key: crypto.randomUUID()
+                }, ...old]);
               }
 
               await getUser();
@@ -235,7 +212,7 @@ export default function Painel() {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: `${binInfo} / ${error.response?.data?.message || "API Connection Error"}`,
+                bin: `${binInfo} / Gateway Error`,
                 key: crypto.randomUUID()
               }, ...old]);
             }
