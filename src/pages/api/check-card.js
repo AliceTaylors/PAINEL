@@ -27,31 +27,45 @@ export default async function handler(req, res) {
     }
 
     // Fazer requisição ao checker
-    const checkResult = await axios.get(`${API_URL}/${cc}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      timeout: 30000
-    });
+    const checkResult = await axios.get(`${API_URL}/${cc}`);
 
     // Processar resposta baseado no tipo de checker
     if (checker === 'adyen') {
+      // Adyen retorna {"live":true} ou {"live":false}
+      const isLive = checkResult.data.live === true;
       return res.json({
-        live: checkResult.data.live,
-        error: !checkResult.data.live,
-        retorno: checkResult.data.live ? 'Approved' : 'Declined'
+        status: isLive ? "live" : "die",
+        message: isLive ? "Approved" : "Declined",
+        data: checkResult.data
       });
     } else {
-      // Premium checker
-      return res.json(checkResult.data);
+      // Premium retorna {"success": true/false, "retorno": "mensagem"}
+      if (checkResult.data.error) {
+        return res.json({
+          status: "error",
+          message: checkResult.data.retorno.replace(/\s*\[\d+\]$/, '')
+        });
+      }
+      
+      // Verificar se é um live específico do Premium
+      const isLive = checkResult.data.success && 
+        (checkResult.data.retorno.includes("Pagamento Aprovado"));
+
+      // Limpar a mensagem de retorno removendo códigos numéricos
+      const cleanMessage = checkResult.data.retorno.replace(/\s*\[\d+\]$/, '');
+
+      return res.json({
+        status: isLive ? "live" : "die",
+        message: cleanMessage,
+        data: checkResult.data
+      });
     }
 
   } catch (error) {
     console.error('Check error:', error);
     return res.status(500).json({ 
-      error: true, 
-      retorno: error.response?.data?.message || 'API Connection Error' 
+      status: "error",
+      message: error.response?.data?.message || 'API Connection Error'
     });
   }
 } 
