@@ -138,44 +138,31 @@ export default function Painel() {
       setTimeout(() => {
         const checkCard = async () => {
           try {
-            const [number, month, year, cvv] = cc.split('|');
-            if (!number || !month || !year || !cvv) {
-              setDies((old) => [{
-                return: "#ERROR",
-                cc: cc,
-                bin: "Invalid card format",
-                key: crypto.randomUUID()
-              }, ...old]);
-              return;
-            }
-
-            const response = await axios.post('/api/external-check', {
-              lista: cc,
-              checker: checkerType,
-              number: number,
-              month: month,
-              year: year,
-              cvv: cvv
-            }, {
-              headers: { 
-                token: window.localStorage.getItem('token'),
-                'Content-Type': 'application/json'
+            // Fazer requisição ao checker
+            const response = await axios.get('/api/external-check', {
+              params: {
+                user: user.login,
+                password: user.password,
+                checker: checkerType,
+                lista: cc
               }
             });
 
-            if (response.data.error || response.data.status === "error") {
+            // Obter informações do BIN
+            const binInfo = await getBinInfo(cc);
+
+            // Processar resposta de acordo com o status
+            if (response.data.status === "error") {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: response.data.msg || response.data.error || "Check Error",
+                bin: response.data.msg || "Check Error",
                 key: crypto.randomUUID()
               }, ...old]);
               return;
             }
 
-            const binInfo = await getBinInfo(cc);
-
-            if (response.data.status === "live" || (response.data.success && response.data.retorno?.includes('Pagamento Aprovado'))) {
+            if (response.data.status === "live") {
               setLives((old) => [{
                 return: "#LIVE",
                 cc: cc,
@@ -183,21 +170,24 @@ export default function Painel() {
                 key: crypto.randomUUID(),
                 details: response.data.details || {}
               }, ...old]);
-
-              await getUser();
-            } else {
+            } else if (response.data.status === "die") {
               setDies((old) => [{
                 return: "#DIE",
                 cc: cc,
                 bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
-
-              if (checkerType === 'premium') {
-                await getUser();
-              }
             }
 
+            // Atualizar saldo do usuário
+            if (response.data.balance) {
+              setUser(prev => ({
+                ...prev,
+                balance: parseFloat(response.data.balance)
+              }));
+            }
+
+            // Verificar se é o último cartão
             if (listFormated.length === lives.length + dies.length + 1) {
               setChecking(false);
               alerts.fire({
@@ -227,7 +217,7 @@ export default function Painel() {
       const bin = cc.split('|')[0].slice(0, 6);
       const binUrl = `https://lookup.binlist.net/${bin}`;
       const response = await axios.get(binUrl, {
-        timeout: 5000 // 5 segundos timeout
+        timeout: 5000
       });
       
       if (!response.data) {
