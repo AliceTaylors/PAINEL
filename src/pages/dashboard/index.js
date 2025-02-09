@@ -148,21 +148,26 @@ export default function Painel() {
             }
 
             // Obter informações do BIN primeiro
-            const binInfo = await getBinInfo(cc);
+            let binInfo;
+            try {
+              binInfo = await getBinInfo(cc);
+            } catch (binError) {
+              console.error('BIN lookup error:', binError);
+              binInfo = `BIN: ${cc.split('|')[0].slice(0, 6)}`;
+            }
 
             try {
-              // Fazer requisição através da API route
               const response = await axios.post('/api/check-card', {
                 cc: cc,
                 checker: checkerType
               });
 
               if (checkerType === 'adyen') {
-                if (response.data.live === true) {
+                if (response.data.status === "live") {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
-                    bin: binInfo,
+                    bin: `${binInfo} / Approved`,
                     key: crypto.randomUUID()
                   }, ...old]);
 
@@ -177,17 +182,16 @@ export default function Painel() {
                   setDies((old) => [{
                     return: "#DIE",
                     cc: cc,
-                    bin: binInfo,
+                    bin: `${binInfo} / Declined`,
                     key: crypto.randomUUID()
                   }, ...old]);
                 }
               } else {
-                // Premium checker
-                if (response.data.success && response.data.retorno?.includes('Pagamento Aprovado')) {
+                if (response.data.status === "live") {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
-                    bin: binInfo,
+                    bin: `${binInfo} / ${response.data.message}`,
                     key: crypto.randomUUID()
                   }, ...old]);
 
@@ -198,18 +202,18 @@ export default function Painel() {
                   }, {
                     headers: { token: window.localStorage.getItem('token') }
                   });
-                } else if (response.data.error) {
+                } else if (response.data.status === "error") {
                   setDies((old) => [{
                     return: "#ERROR",
                     cc: cc,
-                    bin: response.data.retorno || "Check Error",
+                    bin: `${binInfo} / ${response.data.message}`,
                     key: crypto.randomUUID()
                   }, ...old]);
                 } else {
                   setDies((old) => [{
                     return: "#DIE",
                     cc: cc,
-                    bin: binInfo,
+                    bin: `${binInfo} / ${response.data.message}`,
                     key: crypto.randomUUID()
                   }, ...old]);
                 }
@@ -231,7 +235,7 @@ export default function Painel() {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: error.response?.data?.retorno || "API Connection Error",
+                bin: `${binInfo} / ${error.response?.data?.message || "API Connection Error"}`,
                 key: crypto.randomUUID()
               }, ...old]);
             }
@@ -240,7 +244,7 @@ export default function Painel() {
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "System Error",
+              bin: "Invalid Card Format",
               key: crypto.randomUUID()
             }, ...old]);
           }
