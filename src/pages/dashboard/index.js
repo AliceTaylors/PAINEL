@@ -150,63 +150,106 @@ export default function Painel() {
             // Obter informações do BIN primeiro
             const binInfo = await getBinInfo(cc);
 
-            // Fazer requisição ao checker
-            const response = await axios.post('/api/external-check', {
-              lista: cc,
-              checker: checkerType
-            }, {
-              headers: { 
-                token: window.localStorage.getItem('token'),
-                'Content-Type': 'application/json'
+            // Fazer requisição ao checker apropriado
+            const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
+            
+            try {
+              const checkResult = await axios.get(`${API_URL}/${cc}`, {
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                },
+                timeout: 30000
+              });
+
+              const data = checkResult.data;
+
+              if (checkerType === 'adyen') {
+                // Processar resposta do Adyen
+                if (data.live === true) {
+                  setLives((old) => [{
+                    return: "#LIVE",
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+
+                  await axios.post('/api/update-balance', {
+                    amount: -0.50,
+                    type: 'ADYEN LIVE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                } else {
+                  setDies((old) => [{
+                    return: "#DIE",
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+                }
+              } else {
+                // Processar resposta do Premium
+                if (data.success === true) {
+                  setLives((old) => [{
+                    return: "#LIVE - " + data.retorno,
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+
+                  await axios.post('/api/update-balance', {
+                    amount: -1.00,
+                    type: 'PREMIUM LIVE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                } else if (data.success === false) {
+                  setDies((old) => [{
+                    return: "#DIE - " + data.retorno,
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+                } else if (data.error === true) {
+                  setDies((old) => [{
+                    return: "#ERROR - " + data.retorno,
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+                }
               }
-            });
 
-            const data = response.data;
+              // Atualizar saldo do usuário
+              await getUser();
 
-            if (data.status === "error") {
+              // Verificar se é o último cartão
+              if (listFormated.length === index + 1) {
+                setChecking(false);
+                alerts.fire({
+                  icon: 'success',
+                  html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
+                });
+              }
+
+            } catch (error) {
+              console.error('Check error:', error);
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
                 bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
-              return;
             }
-
-            if (data.status === "live") {
-              setLives((old) => [{
-                return: "#LIVE",
-                cc: cc,
-                bin: binInfo,
-                key: crypto.randomUUID()
-              }, ...old]);
-            } else if (data.status === "die") {
-              setDies((old) => [{
-                return: "#DIE",
-                cc: cc,
-                bin: binInfo,
-                key: crypto.randomUUID()
-              }, ...old]);
-            }
-
-            // Atualizar saldo do usuário
-            await getUser();
-
-            // Verificar se é o último cartão
-            if (listFormated.length === index + 1) {
-              setChecking(false);
-              alerts.fire({
-                icon: 'success',
-                html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
-              });
-            }
-
           } catch (error) {
-            console.error('Check error:', error);
+            console.error('General error:', error);
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "API Connection Error",
+              bin: "System Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
@@ -233,9 +276,9 @@ export default function Painel() {
       const type = data.type?.toUpperCase() || '';
       const brand = data.brand?.toUpperCase() || '';
       const bank = data.bank?.name || 'Unknown Bank';
-      const country = data.country?.name || 'Unknown';
+      const country = data.country?.alpha2 || '';
       
-      return `${type} ${brand} / ${bank} / # ${country}`.trim();
+      return `${type} / ${brand} / ${bank} / # ${country}`.trim();
     } catch (error) {
       return `BIN: ${cc.split('|')[0].slice(0, 6)}`;
     }
