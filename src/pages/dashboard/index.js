@@ -149,14 +149,16 @@ export default function Painel() {
               return;
             }
 
-            const response = await axios.post('/api/external-check', {
-              lista: cc,
-              checker: checkerType
-            }, {
-              headers: { token: window.localStorage.getItem('token') }
+            const response = await axios.get('/api/external-check', {
+              params: {
+                user: user.login,
+                password: user.password,
+                checker: checkerType,
+                lista: cc
+              }
             });
 
-            if (response.data.error) {
+            if (response.data.status === "error") {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
@@ -169,20 +171,19 @@ export default function Painel() {
             const binInfo = await getBinInfo(cc);
 
             if (response.data.status === "live") {
-              setLives((prevLives) => [{
+              setLives((old) => [{
                 return: "#LIVE",
                 cc: cc,
                 bin: binInfo,
-                key: crypto.randomUUID(),
-                details: response.data.details || {}
-              }, ...prevLives]);
+                key: crypto.randomUUID()
+              }, ...old]);
             } else {
-              setDies((prevDies) => [{
+              setDies((old) => [{
                 return: "#DIE",
                 cc: cc,
                 bin: binInfo,
                 key: crypto.randomUUID()
-              }, ...prevDies]);
+              }, ...old]);
             }
 
             await getUser();
@@ -197,12 +198,12 @@ export default function Painel() {
 
           } catch (error) {
             console.error('Check error:', error);
-            setDies((prevDies) => [{
+            setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "Connection Error",
+              bin: "API Connection Error",
               key: crypto.randomUUID()
-            }, ...prevDies]);
+            }, ...old]);
           }
         };
 
@@ -218,12 +219,7 @@ export default function Painel() {
       const response = await axios.get(binUrl);
       const data = response.data;
       
-      const scheme = data.scheme || '';
-      const type = data.type || '';
-      const brand = data.brand || '';
-      const country = data.country?.name || 'Unknown';
-      
-      return `${scheme.toUpperCase()} ${type.toUpperCase()} ${brand.toUpperCase()} ${country}`;
+      return `${data.scheme?.toUpperCase() || ''} ${data.type?.toUpperCase() || ''} ${data.brand?.toUpperCase() || ''} ${data.country?.name || 'Unknown'}`;
     } catch (error) {
       return `BIN: ${cc.split('|')[0].slice(0, 6)}`;
     }
