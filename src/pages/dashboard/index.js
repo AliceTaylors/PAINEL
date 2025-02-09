@@ -150,21 +150,21 @@ export default function Painel() {
             // Obter informações do BIN primeiro
             const binInfo = await getBinInfo(cc);
 
-            // Fazer requisição ao checker apropriado
-            const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
-            
             try {
-              const checkResult = await axios.get(`${API_URL}/${cc}`, {
-                headers: {
-                  'Accept': 'application/json',
+              // Fazer requisição através da API route
+              const response = await axios.post('/api/check-card', {
+                cc: cc,
+                checker: checkerType
+              }, {
+                headers: { 
+                  token: window.localStorage.getItem('token'),
                   'Content-Type': 'application/json'
-                },
-                timeout: 30000
+                }
               });
 
               if (checkerType === 'adyen') {
                 // Processar resposta do Adyen
-                if (checkResult.data.live === true) {
+                if (response.data.live === true) {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
@@ -189,7 +189,7 @@ export default function Painel() {
                 }
               } else {
                 // Processar resposta do Premium
-                if (checkResult.data.success && checkResult.data.retorno.includes('Pagamento Aprovado')) {
+                if (response.data.success && response.data.retorno?.includes('Pagamento Aprovado')) {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
@@ -204,11 +204,11 @@ export default function Painel() {
                   }, {
                     headers: { token: window.localStorage.getItem('token') }
                   });
-                } else if (checkResult.data.error) {
+                } else if (response.data.error) {
                   setDies((old) => [{
                     return: "#ERROR",
                     cc: cc,
-                    bin: checkResult.data.retorno || "Check Error",
+                    bin: response.data.retorno || "Check Error",
                     key: crypto.randomUUID()
                   }, ...old]);
                 } else {
@@ -237,7 +237,7 @@ export default function Painel() {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: binInfo || "API Connection Error",
+                bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
             }
