@@ -116,7 +116,7 @@ export default function Painel() {
     e.preventDefault();
     getUser();
 
-    const minBalance = checkerType === 'adyen' ? 0.5 : 1.0;
+    const minBalance = checkerType === 'adyen' ? 0.50 : 1.00;
     if (user.balance < minBalance) {
       return alerts.fire({
         icon: 'warning',
@@ -132,62 +132,29 @@ export default function Painel() {
       .split('\n')
       .filter((n) => n);
 
-    if (!user) {
-      router.push('/');
-    }
-
     listFormated.forEach((cc, index) => {
       setTimeout(() => {
         const checkCard = async () => {
-          if (user.balance < minBalance) {
-            return alerts.fire({
-              icon: 'warning',
-              html: 'Insufficient funds to check cards. Recharge now!',
-            }).then(() => {
-              router.push('/dashboard/wallet');
-            });
-          }
-
           try {
-            // Formatar o cartão
-            const [number, month, year, cvv] = cc.split('|');
-            if (!number || !month || !year || !cvv) {
+            // Fazer requisição ao checker apropriado
+            const response = await axios.post('/api/external-check', {
+              lista: cc,
+              checker: checkerType
+            }, {
+              headers: { token: window.localStorage.getItem('token') }
+            });
+
+            if (response.data.error) {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: "Invalid card format",
+                bin: response.data.msg || "Check Error",
                 key: crypto.randomUUID()
               }, ...old]);
               return;
             }
 
-            // Fazer requisição ao checker
-            const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
-            const checkResult = await axios.get(`${API_URL}/check/${number}/${month}/${year}/${cvv}`);
-
-            // Processar resposta
-            if (checkResult.data.error) {
-              setDies((old) => [{
-                return: "#ERROR",
-                cc: cc,
-                bin: checkResult.data.retorno || "Card Error",
-                key: crypto.randomUUID()
-              }, ...old]);
-
-              if (checkerType === 'premium') {
-                await axios.post('/api/update-balance', {
-                  amount: -0.10,
-                  type: 'PREMIUM DIE',
-                  data: cc
-                }, {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
-              }
-              return;
-            }
-
-            // Verificar se é LIVE
-            if (checkResult.data.success && checkResult.data.retorno?.includes('Pagamento Aprovado')) {
+            if (response.data.status === "live") {
               const binInfo = await getBinInfo(cc);
               setLives((old) => [{
                 return: "#LIVE",
@@ -195,18 +162,10 @@ export default function Painel() {
                 bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
-
-              // Cobrar live cost
-              const cost = checkerType === 'adyen' ? -0.50 : -1.00;
-              await axios.post('/api/update-balance', {
-                amount: cost,
-                type: `${checkerType.toUpperCase()} LIVE`,
-                data: cc
-              }, {
-                headers: { token: window.localStorage.getItem('token') }
-              });
+              
+              // Atualizar saldo do usuário
+              getUser();
             } else {
-              // É um DIE
               const binInfo = await getBinInfo(cc);
               setDies((old) => [{
                 return: "#DIE",
@@ -215,47 +174,13 @@ export default function Painel() {
                 key: crypto.randomUUID()
               }, ...old]);
 
-              if (checkerType === 'premium') {
-                await axios.post('/api/update-balance', {
-                  amount: -0.10,
-                  type: 'PREMIUM DIE',
-                  data: cc
-                }, {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
-
-                // Verificar dies consecutivos
-                const userResponse = await axios.get('/api/sessions', {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
-                
-                let consecutiveDies = 0;
-                for (const log of userResponse.data.user.logs) {
-                  if (log.history_type === 'PREMIUM DIE') {
-                    consecutiveDies++;
-                  } else {
-                    break;
-                  }
-                }
-
-                if (consecutiveDies >= 20) {
-                  await axios.post('/api/block-user', {
-                    type: 'premium',
-                    duration: 48
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-
-                  return alerts.fire({
-                    icon: 'error',
-                    html: 'You have been blocked from Premium checker for 2 days due to too many consecutive dies.'
-                  });
-                }
-              }
+              // Atualizar saldo do usuário
+              getUser();
             }
 
             // Atualizar status ao finalizar
             if (listFormated.length - 1 === lives.length + dies.length) {
+              setChecking(false);
               alerts.fire({
                 icon: 'success',
                 html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
@@ -267,7 +192,7 @@ export default function Painel() {
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "API Connection Error",
+              bin: error.response?.data?.msg || "Connection Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
@@ -285,7 +210,7 @@ export default function Painel() {
       const response = await axios.get(binUrl);
       const data = response.data;
       
-      return `${data.scheme} ${data.type} ${data.brand} ${data.country.name}`;
+      return `${data.scheme || ''} ${data.type || ''} ${data.brand || ''} ${data.country?.name || 'Unknown'}`;
     } catch (error) {
       console.error('Erro ao buscar informações do BIN:', error);
       return 'BIN Info Unavailable';
