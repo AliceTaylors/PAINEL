@@ -162,12 +162,15 @@ export default function Painel() {
                 checker: checkerType
               });
 
-              console.log('Checker response:', response.data); // Debug
-
+              // Log para debug
+              console.log('API response:', response.data);
+              
               const { status, message } = response.data;
 
               if (status === "live") {
-                console.log('Live card detected:', cc); // Debug
+                // Log para debug
+                console.log('Live card detected:', cc);
+                
                 setLives((old) => [{
                   return: "#LIVE",
                   cc: cc,
@@ -184,7 +187,6 @@ export default function Painel() {
                   headers: { token: window.localStorage.getItem('token') }
                 });
               } else if (status === "die") {
-                console.log('Dead card detected:', cc); // Debug
                 setDies((old) => [{
                   return: "#DIE",
                   cc: cc,
@@ -192,7 +194,6 @@ export default function Painel() {
                   key: crypto.randomUUID()
                 }, ...old]);
               } else {
-                console.log('Error response:', message); // Debug
                 setDies((old) => [{
                   return: "#ERROR",
                   cc: cc,
