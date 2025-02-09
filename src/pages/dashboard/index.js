@@ -162,9 +162,12 @@ export default function Painel() {
                 checker: checkerType
               });
 
+              console.log('Checker response:', response.data); // Debug
+
               const { status, message } = response.data;
 
               if (status === "live") {
+                console.log('Live card detected:', cc); // Debug
                 setLives((old) => [{
                   return: "#LIVE",
                   cc: cc,
@@ -180,16 +183,18 @@ export default function Painel() {
                 }, {
                   headers: { token: window.localStorage.getItem('token') }
                 });
-              } else if (status === "error") {
+              } else if (status === "die") {
+                console.log('Dead card detected:', cc); // Debug
                 setDies((old) => [{
-                  return: "#ERROR",
+                  return: "#DIE",
                   cc: cc,
                   bin: `${binInfo} / ${message}`,
                   key: crypto.randomUUID()
                 }, ...old]);
               } else {
+                console.log('Error response:', message); // Debug
                 setDies((old) => [{
-                  return: "#DIE",
+                  return: "#ERROR",
                   cc: cc,
                   bin: `${binInfo} / ${message}`,
                   key: crypto.randomUUID()
@@ -337,37 +342,6 @@ export default function Painel() {
     verifyAdyen();
   }, []);
 
-  // Adicionar funções para limpar resultados
-  const clearLives = () => {
-    alerts.fire({
-      icon: 'warning',
-      title: 'Clear Lives',
-      text: 'Do you want to clear all lives?',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, clear',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setLives([]);
-      }
-    });
-  };
-
-  const clearDies = () => {
-    alerts.fire({
-      icon: 'warning',
-      title: 'Clear Dies',
-      text: 'Do you want to clear all dies?',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, clear',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setDies([]);
-      }
-    });
-  };
-
   return (
     <>
       <Head>
@@ -489,21 +463,6 @@ export default function Painel() {
                     alignItems: 'center'
                   }}>
                     LIVES
-                    {lives.length > 0 && (
-                      <button
-                        onClick={clearLives}
-                        style={{
-                          padding: '2px 8px',
-                          fontSize: '12px',
-                          backgroundColor: '#333',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Clear Lives
-                      </button>
-                    )}
                   </span>
                   {lives.length < 1 && (
                     <small style={{ opacity: 0.5 }}>Nothing yet...</small>
@@ -529,21 +488,6 @@ export default function Painel() {
                     alignItems: 'center'
                   }}>
                     DIES
-                    {dies.length > 0 && (
-                      <button
-                        onClick={clearDies}
-                        style={{
-                          padding: '2px 8px',
-                          fontSize: '12px',
-                          backgroundColor: '#333',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Clear Dies
-                      </button>
-                    )}
                   </span>
                   <br />
                   {dies.length < 1 && (
