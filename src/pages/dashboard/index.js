@@ -579,39 +579,15 @@ export default function Dashboard() {
                   </div>
 
                   <div className="results-grid">
-                    {lives.map((result) => (
-                      <div key={result.key} className="result-card live">
-                        <div className="card-number">{result.cc}</div>
-                        <div className="card-info">
-                          <div className="bin-info">
-                            <span>{result.binInfo?.brand}</span>
-                            <span>{result.binInfo?.type}</span>
-                            <span>{result.binInfo?.level}</span>
-                          </div>
-                          <div className="bank-info">
-                            <span>{result.binInfo?.bank}</span>
-                            <span>{result.binInfo?.country}</span>
-                          </div>
-                        </div>
-                        <div className="result-message">{result.message}</div>
+                    {lives.map((item) => (
+                      <div key={item.key}>
+                        {item.return} / {item.cc} / {item.bin} / CHECKED BY SECCX.PRO
                       </div>
                     ))}
 
-                    {dies.map((result) => (
-                      <div key={result.key} className="result-card die">
-                        <div className="card-number">{result.cc}</div>
-                        <div className="card-info">
-                          <div className="bin-info">
-                            <span>{result.binInfo?.brand}</span>
-                            <span>{result.binInfo?.type}</span>
-                            <span>{result.binInfo?.level}</span>
-                          </div>
-                          <div className="bank-info">
-                            <span>{result.binInfo?.bank}</span>
-                            <span>{result.binInfo?.country}</span>
-                          </div>
-                        </div>
-                        <div className="result-message">{result.message}</div>
+                    {dies.map((item) => (
+                      <div key={item.key} style={{ border: '1px solid #222 !important' }}>
+                        {item.return} / {item.cc} / {item.bin} / CHECKED BY SECCX.PRO
                       </div>
                     ))}
                   </div>
