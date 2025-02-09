@@ -127,6 +127,8 @@ export default function Painel() {
     }
 
     setChecking(true);
+    setLives([]);
+    setDies([]);
 
     const listFormated = String(list)
       .split('\n')
@@ -136,7 +138,17 @@ export default function Painel() {
       setTimeout(() => {
         const checkCard = async () => {
           try {
-            // Fazer requisição ao checker apropriado
+            const [number, month, year, cvv] = cc.split('|');
+            if (!number || !month || !year || !cvv) {
+              setDies((old) => [{
+                return: "#ERROR",
+                cc: cc,
+                bin: "Invalid card format",
+                key: crypto.randomUUID()
+              }, ...old]);
+              return;
+            }
+
             const response = await axios.post('/api/external-check', {
               lista: cc,
               checker: checkerType
@@ -154,32 +166,28 @@ export default function Painel() {
               return;
             }
 
+            const binInfo = await getBinInfo(cc);
+
             if (response.data.status === "live") {
-              const binInfo = await getBinInfo(cc);
-              setLives((old) => [{
+              setLives((prevLives) => [{
                 return: "#LIVE",
                 cc: cc,
                 bin: binInfo,
-                key: crypto.randomUUID()
-              }, ...old]);
-              
-              // Atualizar saldo do usuário
-              getUser();
+                key: crypto.randomUUID(),
+                details: response.data.details || {}
+              }, ...prevLives]);
             } else {
-              const binInfo = await getBinInfo(cc);
-              setDies((old) => [{
+              setDies((prevDies) => [{
                 return: "#DIE",
                 cc: cc,
                 bin: binInfo,
                 key: crypto.randomUUID()
-              }, ...old]);
-
-              // Atualizar saldo do usuário
-              getUser();
+              }, ...prevDies]);
             }
 
-            // Atualizar status ao finalizar
-            if (listFormated.length - 1 === lives.length + dies.length) {
+            await getUser();
+
+            if (listFormated.length === lives.length + dies.length + 1) {
               setChecking(false);
               alerts.fire({
                 icon: 'success',
@@ -189,12 +197,12 @@ export default function Painel() {
 
           } catch (error) {
             console.error('Check error:', error);
-            setDies((old) => [{
+            setDies((prevDies) => [{
               return: "#ERROR",
               cc: cc,
-              bin: error.response?.data?.msg || "Connection Error",
+              bin: "Connection Error",
               key: crypto.randomUUID()
-            }, ...old]);
+            }, ...prevDies]);
           }
         };
 
@@ -210,10 +218,14 @@ export default function Painel() {
       const response = await axios.get(binUrl);
       const data = response.data;
       
-      return `${data.scheme || ''} ${data.type || ''} ${data.brand || ''} ${data.country?.name || 'Unknown'}`;
+      const scheme = data.scheme || '';
+      const type = data.type || '';
+      const brand = data.brand || '';
+      const country = data.country?.name || 'Unknown';
+      
+      return `${scheme.toUpperCase()} ${type.toUpperCase()} ${brand.toUpperCase()} ${country}`;
     } catch (error) {
-      console.error('Erro ao buscar informações do BIN:', error);
-      return 'BIN Info Unavailable';
+      return `BIN: ${cc.split('|')[0].slice(0, 6)}`;
     }
   }
 
@@ -418,9 +430,13 @@ export default function Painel() {
                     <small style={{ opacity: 0.5 }}>Nothing yet...</small>
                   )}
                   {lives.map((item) => (
-                    <div key={item.key}>
-                      {item.return} / {item.cc} / {item.bin} / CHECKED BY{' '}
-                      SECCX.PRO
+                    <div key={item.key} style={{ 
+                      backgroundColor: '#111',
+                      padding: '10px',
+                      marginBottom: '5px',
+                      borderRadius: '5px'
+                    }}>
+                      {item.return} / {item.cc} / {item.bin} / CHECKED BY SECCX.PRO
                     </div>
                   ))}
                 </div>
@@ -458,12 +474,13 @@ export default function Painel() {
                     <small style={{ opacity: 0.5 }}>Nothing yet...</small>
                   )}
                   {dies.map((item) => (
-                    <div
-                      key={item.key}
-                      style={{ border: '1px solid #222 !important' }}
-                    >
-                      {item.return} / {item.cc} / {item.bin} / CHECKED BY{' '}
-                      SECCX.PRO
+                    <div key={item.key} style={{
+                      backgroundColor: '#111',
+                      padding: '10px',
+                      marginBottom: '5px',
+                      borderRadius: '5px'
+                    }}>
+                      {item.return} / {item.cc} / {item.bin} / CHECKED BY SECCX.PRO
                     </div>
                   ))}
                 </div>
