@@ -136,65 +136,87 @@ export default function Painel() {
       router.push('/');
     }
 
-    listFormated.forEach(async (cc, index) => {
-      setTimeout(async () => {
-        if (user.balance < minBalance) {
-          return alerts.fire({
-            icon: 'warning',
-            html: 'Insufficient funds to check cards. Recharge now!',
-          }).then(() => {
-            router.push('/dashboard/wallet');
-          });
-        }
+    listFormated.forEach((cc, index) => {
+      setTimeout(() => {
+        const checkCard = async () => {
+          if (user.balance < minBalance) {
+            return alerts.fire({
+              icon: 'warning',
+              html: 'Insufficient funds to check cards. Recharge now!',
+            }).then(() => {
+              router.push('/dashboard/wallet');
+            });
+          }
 
-        try {
-          // Fazer requisição ao checker apropriado
-          const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
-          const checkResult = await axios.get(`${API_URL}${cc}`);
+          try {
+            // Fazer requisição ao checker apropriado
+            const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
+            const checkResult = await axios.get(`${API_URL}${cc}`);
 
-          // Processar resposta
-          if (checkResult.data.error) {
-            setDies((old) => [{
-              return: "#ERROR",
-              cc: cc,
-              bin: checkResult.data.retorno || "Check Error",
-              key: crypto.randomUUID()
-            }, ...old]);
-
-            // Cobrar die cost apenas para Premium
-            if (checkerType === 'premium') {
-              await axios.post('/api/update-balance', {
-                amount: -0.10,
-                type: 'PREMIUM DIE',
-                data: cc
-              }, {
-                headers: { token: window.localStorage.getItem('token') }
-              });
-            }
-          } else if (checkResult.data.success) {
-            // Verificar se é um pagamento aprovado
-            if (checkResult.data.retorno?.includes('Pagamento Aprovado')) {
-              setLives((old) => [{
-                return: "#LIVE",
+            // Processar resposta
+            if (checkResult.data.error) {
+              setDies((old) => [{
+                return: "#ERROR",
                 cc: cc,
-                bin: await getBinInfo(cc),
+                bin: checkResult.data.retorno || "Check Error",
                 key: crypto.randomUUID()
               }, ...old]);
 
-              // Cobrar live cost
-              const cost = checkerType === 'adyen' ? -0.50 : -1.00;
-              await axios.post('/api/update-balance', {
-                amount: cost,
-                type: `${checkerType.toUpperCase()} LIVE`,
-                data: cc
-              }, {
-                headers: { token: window.localStorage.getItem('token') }
-              });
+              // Cobrar die cost apenas para Premium
+              if (checkerType === 'premium') {
+                await axios.post('/api/update-balance', {
+                  amount: -0.10,
+                  type: 'PREMIUM DIE',
+                  data: cc
+                }, {
+                  headers: { token: window.localStorage.getItem('token') }
+                });
+              }
+            } else if (checkResult.data.success) {
+              // Verificar se é um pagamento aprovado
+              if (checkResult.data.retorno?.includes('Pagamento Aprovado')) {
+                const binInfo = await getBinInfo(cc);
+                setLives((old) => [{
+                  return: "#LIVE",
+                  cc: cc,
+                  bin: binInfo,
+                  key: crypto.randomUUID()
+                }, ...old]);
+
+                // Cobrar live cost
+                const cost = checkerType === 'adyen' ? -0.50 : -1.00;
+                await axios.post('/api/update-balance', {
+                  amount: cost,
+                  type: `${checkerType.toUpperCase()} LIVE`,
+                  data: cc
+                }, {
+                  headers: { token: window.localStorage.getItem('token') }
+                });
+              } else {
+                const binInfo = await getBinInfo(cc);
+                setDies((old) => [{
+                  return: "#DIE",
+                  cc: cc,
+                  bin: binInfo,
+                  key: crypto.randomUUID()
+                }, ...old]);
+
+                if (checkerType === 'premium') {
+                  await axios.post('/api/update-balance', {
+                    amount: -0.10,
+                    type: 'PREMIUM DIE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                }
+              }
             } else {
+              const binInfo = await getBinInfo(cc);
               setDies((old) => [{
                 return: "#DIE",
                 cc: cc,
-                bin: await getBinInfo(cc),
+                bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
 
@@ -208,72 +230,57 @@ export default function Painel() {
                 });
               }
             }
-          } else {
-            setDies((old) => [{
-              return: "#DIE",
-              cc: cc,
-              bin: await getBinInfo(cc),
-              key: crypto.randomUUID()
-            }, ...old]);
 
+            // Verificar dies consecutivos para Premium
             if (checkerType === 'premium') {
-              await axios.post('/api/update-balance', {
-                amount: -0.10,
-                type: 'PREMIUM DIE',
-                data: cc
-              }, {
+              const userResponse = await axios.get('/api/sessions', {
                 headers: { token: window.localStorage.getItem('token') }
               });
-            }
-          }
+              
+              let consecutiveDies = 0;
+              for (const log of userResponse.data.user.logs) {
+                if (log.history_type === 'PREMIUM DIE') {
+                  consecutiveDies++;
+                } else {
+                  break;
+                }
+              }
 
-          // Verificar dies consecutivos para Premium
-          if (checkerType === 'premium') {
-            const userResponse = await axios.get('/api/sessions', {
-              headers: { token: window.localStorage.getItem('token') }
-            });
-            
-            let consecutiveDies = 0;
-            for (const log of userResponse.data.user.logs) {
-              if (log.history_type === 'PREMIUM DIE') {
-                consecutiveDies++;
-              } else {
-                break;
+              if (consecutiveDies >= 20) {
+                await axios.post('/api/block-user', {
+                  type: 'premium',
+                  duration: 48 // 2 dias em horas
+                }, {
+                  headers: { token: window.localStorage.getItem('token') }
+                });
+
+                return alerts.fire({
+                  icon: 'error',
+                  html: 'You have been blocked from Premium checker for 2 days due to too many consecutive dies.'
+                });
               }
             }
 
-            if (consecutiveDies >= 20) {
-              await axios.post('/api/block-user', {
-                type: 'premium',
-                duration: 48 // 2 dias em horas
-              }, {
-                headers: { token: window.localStorage.getItem('token') }
-              });
-
-              return alerts.fire({
-                icon: 'error',
-                html: 'You have been blocked from Premium checker for 2 days due to too many consecutive dies.'
-              });
-            }
+          } catch (error) {
+            console.error('Check error:', error);
+            setDies((old) => [{
+              return: "#ERROR",
+              cc: cc,
+              bin: "Check Error",
+              key: crypto.randomUUID()
+            }, ...old]);
           }
 
-        } catch (error) {
-          console.error('Check error:', error);
-          setDies((old) => [{
-            return: "#ERROR",
-            cc: cc,
-            bin: "Check Error",
-            key: crypto.randomUUID()
-          }, ...old]);
-        }
+          // Atualizar status ao finalizar
+          if (listFormated.length - 1 === lives.length + dies.length) {
+            alerts.fire({
+              icon: 'success',
+              html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
+            });
+          }
+        };
 
-        // Atualizar status ao finalizar
-        if (listFormated.length - 1 === lives.length + dies.length) {
-          alerts.fire({
-            icon: 'success',
-            html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
-          });
-        }
+        checkCard();
       }, 3000 * index);
     });
   }
