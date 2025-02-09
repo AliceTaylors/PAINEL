@@ -1,28 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from "mongoose";
 
-const userSchema = new mongoose.Schema({
+mongoose.Promise = global.Promise;
+
+const customerSchema = new Schema({
   login: String,
-  password: String,
-  balance: {
-    type: Number,
-    default: 0
-  },
-  logs: {
-    type: Array,
-    default: []
-  },
-  mail: String,
-  ipAddress: String,
+  password: { type: String, select: false },
+  admin: { type: Boolean, default: false },
+  ipAddress: { type: String, select: false },
+  balance: { type: Number, min: 0 },
+  logs: [{ history_type: String, cost: Number, data: String }],
   order: {
-    amount: Number,
-    complete: Boolean,
-    currency: String,
-    address: String,
-    pricing: String,
-    externalId: String,
+    amount: { type: Number, default: 0 },
+    complete: { type: Boolean, default: false },
+    currency: { type: String },
+    address: { type: String },
+    pricing: { type: String },
+    externalId: { type: String, default: "" },
   },
-  adyen_block_until: Date,
-  premium_block_until: Date
+  cards: [String],
 });
 
-export default mongoose.models.User || mongoose.model('User', userSchema);
+module.exports = mongoose.models.User || mongoose.model("User", customerSchema);
