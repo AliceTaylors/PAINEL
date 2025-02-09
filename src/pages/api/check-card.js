@@ -31,35 +31,45 @@ export default async function handler(req, res) {
         // Processar resposta do Adyen
         const response = checkResult.data;
         
-        // Verificar se a resposta contém a string "Live" ou "Die"
-        if (typeof response === 'string' && response.includes('Live')) {
-          return res.json({
-            status: "live",
-            message: "Approved"
-          });
-        } else if (typeof response === 'string' && response.includes('Die')) {
-          return res.json({
-            status: "die",
-            message: "Declined"
-          });
-        } else if (response && response.live === true) {
-          // Verificar também o formato {"live":true}
-          return res.json({
-            status: "live",
-            message: "Approved"
-          });
-        } else if (response && response.live === false) {
-          // Verificar também o formato {"live":false}
-          return res.json({
-            status: "die",
-            message: "Declined"
-          });
-        } else {
-          return res.json({
-            status: "error",
-            message: "Gateway Error"
-          });
+        // Debug da resposta
+        console.log('Adyen raw response:', response);
+        console.log('Response type:', typeof response);
+        
+        // Verificar o formato da resposta
+        if (typeof response === 'string') {
+          // Se for string, verificar o conteúdo exato
+          const responseText = response.trim().toLowerCase();
+          if (responseText === 'live') {
+            return res.json({
+              status: "live",
+              message: "Approved"
+            });
+          } else if (responseText === 'die') {
+            return res.json({
+              status: "die",
+              message: "Declined"
+            });
+          }
+        } else if (typeof response === 'object' && response !== null) {
+          // Se for objeto JSON, verificar a propriedade live
+          if (response.live === true || response.live === "true") {
+            return res.json({
+              status: "live",
+              message: "Approved"
+            });
+          } else if (response.live === false || response.live === "false") {
+            return res.json({
+              status: "die",
+              message: "Declined"
+            });
+          }
         }
+        
+        // Se chegou aqui, a resposta é inválida
+        return res.json({
+          status: "error",
+          message: "Gateway Error"
+        });
       } else {
         // Premium checker
         if (checkResult.data.error) {
