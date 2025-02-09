@@ -155,15 +155,9 @@ export default function Painel() {
               const response = await axios.post('/api/check-card', {
                 cc: cc,
                 checker: checkerType
-              }, {
-                headers: { 
-                  token: window.localStorage.getItem('token'),
-                  'Content-Type': 'application/json'
-                }
               });
 
               if (checkerType === 'adyen') {
-                // Processar resposta do Adyen
                 if (response.data.live === true) {
                   setLives((old) => [{
                     return: "#LIVE",
@@ -188,7 +182,7 @@ export default function Painel() {
                   }, ...old]);
                 }
               } else {
-                // Processar resposta do Premium
+                // Premium checker
                 if (response.data.success && response.data.retorno?.includes('Pagamento Aprovado')) {
                   setLives((old) => [{
                     return: "#LIVE",
@@ -237,7 +231,7 @@ export default function Painel() {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: binInfo,
+                bin: error.response?.data?.retorno || "API Connection Error",
                 key: crypto.randomUUID()
               }, ...old]);
             }
@@ -246,7 +240,7 @@ export default function Painel() {
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: binInfo || "System Error",
+              bin: "System Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
