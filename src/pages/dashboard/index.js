@@ -127,8 +127,6 @@ export default function Painel() {
     }
 
     setChecking(true);
-    setLives([]);
-    setDies([]);
 
     const listFormated = String(list)
       .split('\n')
@@ -152,111 +150,50 @@ export default function Painel() {
             // Obter informações do BIN primeiro
             const binInfo = await getBinInfo(cc);
 
-            // Fazer requisição ao checker apropriado
-            const API_URL = checkerType === 'adyen' ? process.env.NEXT_PUBLIC_API_1_URL : process.env.NEXT_PUBLIC_API_2_URL;
-            
-            // Montar a URL com os parâmetros no formato correto
-            const fullUrl = `${API_URL}/${cc}`;
-
-            try {
-              const checkResult = await axios.get(fullUrl, {
-                headers: {
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json'
-                },
-                timeout: 30000
-              });
-
-              const data = checkResult.data;
-
-              if (checkerType === 'adyen') {
-                // Processar resposta do Adyen
-                if (data.live === true) {
-                  setLives((old) => [{
-                    return: "#LIVE",
-                    cc: cc,
-                    bin: binInfo,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-
-                  await axios.post('/api/update-balance', {
-                    amount: -0.50,
-                    type: 'ADYEN LIVE',
-                    data: cc
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-                } else {
-                  setDies((old) => [{
-                    return: "#DIE",
-                    cc: cc,
-                    bin: binInfo,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-                }
-              } else {
-                // Processar resposta do Premium
-                if (data.error) {
-                  setDies((old) => [{
-                    return: "#ERROR",
-                    cc: cc,
-                    bin: data.retorno,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-                } else if (data.success && data.retorno.includes('Pagamento Aprovado')) {
-                  setLives((old) => [{
-                    return: "#LIVE",
-                    cc: cc,
-                    bin: binInfo,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-
-                  await axios.post('/api/update-balance', {
-                    amount: -1.00,
-                    type: 'PREMIUM LIVE',
-                    data: cc
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-                } else {
-                  setDies((old) => [{
-                    return: "#DIE",
-                    cc: cc,
-                    bin: binInfo,
-                    key: crypto.randomUUID()
-                  }, ...old]);
-
-                  await axios.post('/api/update-balance', {
-                    amount: -0.10,
-                    type: 'PREMIUM DIE',
-                    data: cc
-                  }, {
-                    headers: { token: window.localStorage.getItem('token') }
-                  });
-                }
+            // Fazer requisição ao checker
+            const response = await axios.post('/api/external-check', {
+              lista: cc,
+              checker: checkerType
+            }, {
+              headers: { 
+                token: window.localStorage.getItem('token'),
+                'Content-Type': 'application/json'
               }
+            });
 
-              // Atualizar saldo do usuário
-              await getUser();
+            const data = response.data;
 
-            } catch (apiError) {
-              console.error('API Error:', apiError);
-              // Tentar obter mensagem de erro mais específica
-              const errorMessage = apiError.response?.data?.retorno || 
-                                 apiError.response?.data?.message || 
-                                 apiError.message || 
-                                 "API Connection Error";
-              
+            if (data.status === "error") {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: binInfo, // Manter as informações do BIN mesmo com erro
+                bin: binInfo,
+                key: crypto.randomUUID()
+              }, ...old]);
+              return;
+            }
+
+            if (data.status === "live") {
+              setLives((old) => [{
+                return: "#LIVE",
+                cc: cc,
+                bin: binInfo,
+                key: crypto.randomUUID()
+              }, ...old]);
+            } else if (data.status === "die") {
+              setDies((old) => [{
+                return: "#DIE",
+                cc: cc,
+                bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
             }
 
+            // Atualizar saldo do usuário
+            await getUser();
+
             // Verificar se é o último cartão
-            if (listFormated.length === lives.length + dies.length + 1) {
+            if (listFormated.length === index + 1) {
               setChecking(false);
               alerts.fire({
                 icon: 'success',
@@ -265,11 +202,11 @@ export default function Painel() {
             }
 
           } catch (error) {
-            console.error('General error:', error);
+            console.error('Check error:', error);
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: binInfo || "System Error", // Usar BIN se disponível
+              bin: "API Connection Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
@@ -293,11 +230,10 @@ export default function Painel() {
       }
 
       const data = response.data;
-      const scheme = data.scheme?.toUpperCase() || '';
       const type = data.type?.toUpperCase() || '';
       const brand = data.brand?.toUpperCase() || '';
-      const country = data.country?.name || 'Unknown';
       const bank = data.bank?.name || 'Unknown Bank';
+      const country = data.country?.name || 'Unknown';
       
       return `${type} ${brand} / ${bank} / # ${country}`.trim();
     } catch (error) {
@@ -385,6 +321,37 @@ export default function Painel() {
 
     verifyAdyen();
   }, []);
+
+  // Adicionar funções para limpar resultados
+  const clearLives = () => {
+    alerts.fire({
+      icon: 'warning',
+      title: 'Clear Lives',
+      text: 'Do you want to clear all lives?',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, clear',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setLives([]);
+      }
+    });
+  };
+
+  const clearDies = () => {
+    alerts.fire({
+      icon: 'warning',
+      title: 'Clear Dies',
+      text: 'Do you want to clear all dies?',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, clear',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setDies([]);
+      }
+    });
+  };
 
   return (
     <>
@@ -499,8 +466,29 @@ export default function Painel() {
                 </button>
 
                 <div className="lives" style={{ marginTop: '20px' }}>
-                  <span style={{ color: '#f5f5f5', fontSize: '13px' }}>
+                  <span style={{ 
+                    color: '#f5f5f5', 
+                    fontSize: '13px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
                     LIVES
+                    {lives.length > 0 && (
+                      <button
+                        onClick={clearLives}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#333',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Clear Lives
+                      </button>
+                    )}
                   </span>
                   {lives.length < 1 && (
                     <small style={{ opacity: 0.5 }}>Nothing yet...</small>
@@ -518,32 +506,29 @@ export default function Painel() {
                 </div>
 
                 <div className="dies" style={{ marginTop: '30px' }}>
-                  <span
-                    style={{
-                      color: '#f5f5f5',
-                      fontSize: '13px',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    DIES{' '}
-                    <div>
-                      {dies.length > 0 && (
-                        <button
-                          onClick={() => {
-                            setDies([]);
-                          }}
-                          style={{
-                            padding: '0px 0px !important',
-                            fontSize: '12px',
-                          }}
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
+                  <span style={{
+                    color: '#f5f5f5',
+                    fontSize: '13px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    DIES
+                    {dies.length > 0 && (
+                      <button
+                        onClick={clearDies}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '12px',
+                          backgroundColor: '#333',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Clear Dies
+                      </button>
+                    )}
                   </span>
                   <br />
                   {dies.length < 1 && (
