@@ -39,6 +39,7 @@ export default function Painel() {
   const [dies, setDies] = useState([]);
   const router = useRouter();
   const [status, setStatus] = useState(null);
+  const [checkerType, setCheckerType] = useState('adyen');
 
   const getUser = async () => {
     const res = await axios.get('/api/sessions', {
@@ -113,18 +114,16 @@ export default function Painel() {
 
   async function handleCheck(e) {
     e.preventDefault();
-
     getUser();
 
-    if (user.balance < 0.5) {
-      return alerts
-        .fire({
-          icon: 'warning',
-          html: 'Insuficient funds to check cards. <b>Add funds now</b>!',
-        })
-        .then(() => {
-          router.push('/dashboard/wallet');
-        });
+    const minBalance = checkerType === 'adyen' ? 0.5 : 1.0;
+    if (user.balance < minBalance) {
+      return alerts.fire({
+        icon: 'warning',
+        html: `Insufficient funds to check cards. Minimum balance required: $${minBalance}`,
+      }).then(() => {
+        router.push('/dashboard/wallet');
+      });
     }
 
     setChecking(true);
@@ -139,37 +138,137 @@ export default function Painel() {
 
     listFormated.forEach(async (cc, index) => {
       setTimeout(async () => {
-        if (user.balance < 0.5) {
-          return alerts
-            .fire({
-              icon: 'warning',
-              html: 'Insuficient funds to check cards. <b>Recharge now</b>!',
-            })
-            .then(() => {
-              router.push('/dashboard/wallet');
+        if (user.balance < minBalance) {
+          return alerts.fire({
+            icon: 'warning',
+            html: 'Insufficient funds to check cards. Recharge now!',
+          }).then(() => {
+            router.push('/dashboard/wallet');
+          });
+        }
+
+        try {
+          // Fazer requisição ao checker apropriado
+          const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
+          const checkResult = await axios.get(`${API_URL}${cc}`);
+
+          // Processar resposta
+          if (checkResult.data.error) {
+            setDies((old) => [{
+              return: "#ERROR",
+              cc: cc,
+              bin: checkResult.data.retorno || "Check Error",
+              key: crypto.randomUUID()
+            }, ...old]);
+
+            // Cobrar die cost apenas para Premium
+            if (checkerType === 'premium') {
+              await axios.post('/api/update-balance', {
+                amount: -0.10,
+                type: 'PREMIUM DIE',
+                data: cc
+              }, {
+                headers: { token: window.localStorage.getItem('token') }
+              });
+            }
+          } else if (checkResult.data.success) {
+            // Verificar se é um pagamento aprovado
+            if (checkResult.data.retorno?.includes('Pagamento Aprovado')) {
+              setLives((old) => [{
+                return: "#LIVE",
+                cc: cc,
+                bin: await getBinInfo(cc),
+                key: crypto.randomUUID()
+              }, ...old]);
+
+              // Cobrar live cost
+              const cost = checkerType === 'adyen' ? -0.50 : -1.00;
+              await axios.post('/api/update-balance', {
+                amount: cost,
+                type: `${checkerType.toUpperCase()} LIVE`,
+                data: cc
+              }, {
+                headers: { token: window.localStorage.getItem('token') }
+              });
+            } else {
+              setDies((old) => [{
+                return: "#DIE",
+                cc: cc,
+                bin: await getBinInfo(cc),
+                key: crypto.randomUUID()
+              }, ...old]);
+
+              if (checkerType === 'premium') {
+                await axios.post('/api/update-balance', {
+                  amount: -0.10,
+                  type: 'PREMIUM DIE',
+                  data: cc
+                }, {
+                  headers: { token: window.localStorage.getItem('token') }
+                });
+              }
+            }
+          } else {
+            setDies((old) => [{
+              return: "#DIE",
+              cc: cc,
+              bin: await getBinInfo(cc),
+              key: crypto.randomUUID()
+            }, ...old]);
+
+            if (checkerType === 'premium') {
+              await axios.post('/api/update-balance', {
+                amount: -0.10,
+                type: 'PREMIUM DIE',
+                data: cc
+              }, {
+                headers: { token: window.localStorage.getItem('token') }
+              });
+            }
+          }
+
+          // Verificar dies consecutivos para Premium
+          if (checkerType === 'premium') {
+            const userResponse = await axios.get('/api/sessions', {
+              headers: { token: window.localStorage.getItem('token') }
             });
+            
+            let consecutiveDies = 0;
+            for (const log of userResponse.data.user.logs) {
+              if (log.history_type === 'PREMIUM DIE') {
+                consecutiveDies++;
+              } else {
+                break;
+              }
+            }
+
+            if (consecutiveDies >= 20) {
+              await axios.post('/api/block-user', {
+                type: 'premium',
+                duration: 48 // 2 dias em horas
+              }, {
+                headers: { token: window.localStorage.getItem('token') }
+              });
+
+              return alerts.fire({
+                icon: 'error',
+                html: 'You have been blocked from Premium checker for 2 days due to too many consecutive dies.'
+              });
+            }
+          }
+
+        } catch (error) {
+          console.error('Check error:', error);
+          setDies((old) => [{
+            return: "#ERROR",
+            cc: cc,
+            bin: "Check Error",
+            key: crypto.randomUUID()
+          }, ...old]);
         }
 
-        const check = await axios.post(
-          '/api/checks',
-          {
-            cc,
-            gateway_server:
-              'us-' + Math.floor(Math.random() * (20 - 1 + 1) + 1),
-          },
-          { headers: { token: window.localStorage.getItem('token') } }
-        );
-
-        const data = check.data;
-
-        if (data.success) {
-          setLives((old) => [data, ...old]);
-        } else {
-          setDies((old) => [data, ...old]);
-        }
-        console.log(listFormated.length);
-
-        if (listFormated.length - 1 == lives + dies) {
+        // Atualizar status ao finalizar
+        if (listFormated.length - 1 === lives.length + dies.length) {
           alerts.fire({
             icon: 'success',
             html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
@@ -177,6 +276,20 @@ export default function Painel() {
         }
       }, 3000 * index);
     });
+  }
+
+  async function getBinInfo(cc) {
+    try {
+      const bin = cc.split('|')[0].slice(0, 6);
+      const binUrl = `https://lookup.binlist.net/${bin}`;
+      const response = await axios.get(binUrl);
+      const data = response.data;
+      
+      return `${data.scheme} ${data.type} ${data.brand} ${data.country.name}`;
+    } catch (error) {
+      console.error('Erro ao buscar informações do BIN:', error);
+      return 'BIN Info Unavailable';
+    }
   }
 
   useEffect(() => {
@@ -305,23 +418,22 @@ export default function Painel() {
                         fontWeight: 'lighter',
                       }}
                     >
-                      Adyen Gateway: Fullz & Gens
+                      {checkerType === 'adyen' ? 'Adyen Gateway: Fullz & Gens' : 'Premium Gateway'}
                     </small>
                   </span>
                   <div>
-                    <small
+                    <select 
+                      value={checkerType}
+                      onChange={(e) => setCheckerType(e.target.value)}
                       style={{
-                        fontSize: '12px',
-                        letterSpacing: 1,
-                        background: '#f5f5f5',
-                        color: 'black',
-                        marginLeft: '10px',
-                        padding: '1px 2px',
-                        borderRadius: '5px',
+                        marginRight: '10px',
+                        padding: '5px',
+                        borderRadius: '5px'
                       }}
                     >
-                      ${checkerSettings.checkLiveCost * -1}/live
-                    </small>
+                      <option value="adyen">Adyen ($0.50/live)</option>
+                      <option value="premium">Premium ($1.00/live, $0.10/die)</option>
+                    </select>
                   </div>
                 </h2>
                 <form
