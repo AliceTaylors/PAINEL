@@ -162,11 +162,9 @@ export default function Painel() {
                 timeout: 30000
               });
 
-              const data = checkResult.data;
-
               if (checkerType === 'adyen') {
                 // Processar resposta do Adyen
-                if (data.live === true) {
+                if (checkResult.data.live === true) {
                   setLives((old) => [{
                     return: "#LIVE",
                     cc: cc,
@@ -191,9 +189,9 @@ export default function Painel() {
                 }
               } else {
                 // Processar resposta do Premium
-                if (data.success === true) {
+                if (checkResult.data.success && checkResult.data.retorno.includes('Pagamento Aprovado')) {
                   setLives((old) => [{
-                    return: "#LIVE - " + data.retorno,
+                    return: "#LIVE",
                     cc: cc,
                     bin: binInfo,
                     key: crypto.randomUUID()
@@ -206,16 +204,16 @@ export default function Painel() {
                   }, {
                     headers: { token: window.localStorage.getItem('token') }
                   });
-                } else if (data.success === false) {
+                } else if (checkResult.data.error) {
                   setDies((old) => [{
-                    return: "#DIE - " + data.retorno,
+                    return: "#ERROR",
                     cc: cc,
-                    bin: binInfo,
+                    bin: checkResult.data.retorno || "Check Error",
                     key: crypto.randomUUID()
                   }, ...old]);
-                } else if (data.error === true) {
+                } else {
                   setDies((old) => [{
-                    return: "#ERROR - " + data.retorno,
+                    return: "#DIE",
                     cc: cc,
                     bin: binInfo,
                     key: crypto.randomUUID()
@@ -223,7 +221,6 @@ export default function Painel() {
                 }
               }
 
-              // Atualizar saldo do usuário
               await getUser();
 
               // Verificar se é o último cartão
@@ -240,7 +237,7 @@ export default function Painel() {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: binInfo,
+                bin: binInfo || "API Connection Error",
                 key: crypto.randomUUID()
               }, ...old]);
             }
@@ -249,7 +246,7 @@ export default function Painel() {
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "System Error",
+              bin: binInfo || "System Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
@@ -275,12 +272,12 @@ export default function Painel() {
       const data = response.data;
       const type = data.type?.toUpperCase() || '';
       const brand = data.brand?.toUpperCase() || '';
-      const bank = data.bank?.name || 'Unknown Bank';
+      const bank = data.bank?.name?.toUpperCase() || 'UNKNOWN BANK';
       const country = data.country?.alpha2 || '';
       
-      return `${type} / ${brand} / ${bank} / # ${country}`.trim();
+      return `${type} / ${brand} / ${bank} / # ${country}`;
     } catch (error) {
-      return `BIN: ${cc.split('|')[0].slice(0, 6)}`;
+      return `BIN: ${bin}`;
     }
   }
 
