@@ -227,7 +227,7 @@ export default function Painel() {
   return (
     <>
       <Head>
-        <title>SECCX.PRO | Dashboard</title>
+        <title>checkercc.Tech | Dashboard</title>
       </Head>
 
       {user && (
