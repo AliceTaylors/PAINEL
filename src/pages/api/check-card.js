@@ -15,7 +15,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Selecionar URL baseado no tipo de checker
     const API_URL = checker === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
     
     if (!API_URL) {
@@ -26,45 +25,26 @@ export default async function handler(req, res) {
     }
 
     try {
-      // Fazer requisição ao checker
-      const checkResult = await axios.get(`${API_URL}/${cc}`, {
-        timeout: 30000,
-        validateStatus: function (status) {
-          return status >= 200 && status < 500; // Aceitar respostas entre 200-499
-        }
-      });
+      const checkResult = await axios.get(`${API_URL}/${cc}`);
 
-      // Processar resposta baseado no tipo de checker
       if (checker === 'adyen') {
-        try {
-          // Verificar se temos uma resposta válida
-          if (!checkResult.data) {
-            throw new Error('Empty response from Adyen');
-          }
-
-          // Log para debug
-          console.log('Raw Adyen response:', checkResult.data);
-
-          // Verificar se a resposta contém "Live" ou "Die"
-          const isLive = checkResult.data.includes("Live");
-
-          if (isLive) {
-            return res.json({
-              status: "live",
-              message: checkResult.data.replace("Live (", "").replace(")", "") // Remove o prefixo "Live ("
-            });
-          } else {
-            return res.json({
-              status: "die",
-              message: checkResult.data.replace("Die (", "").replace(")", "") // Remove o prefixo "Die ("
-            });
-          }
-
-        } catch (adyenError) {
-          console.error('Adyen processing error:', adyenError);
-          return res.status(500).json({
+        // Processar resposta do Adyen
+        const response = checkResult.data;
+        
+        if (response === "Live") {
+          return res.json({
+            status: "live",
+            message: "Approved"
+          });
+        } else if (response === "Die") {
+          return res.json({
+            status: "die",
+            message: "Declined"
+          });
+        } else {
+          return res.json({
             status: "error",
-            message: "Gateway Error"
+            message: "Invalid response"
           });
         }
       } else {
@@ -72,7 +52,7 @@ export default async function handler(req, res) {
         if (checkResult.data.error) {
           return res.json({
             status: "error",
-            message: checkResult.data.retorno.replace(/\s*\[\d+\]$/, '')
+            message: checkResult.data.retorno
           });
         }
         
@@ -81,14 +61,15 @@ export default async function handler(req, res) {
 
         return res.json({
           status: isLive ? "live" : "die",
-          message: checkResult.data.retorno.replace(/\s*\[\d+\]$/, '')
+          message: checkResult.data.retorno
         });
       }
-    } catch (apiError) {
-      console.error('API request error:', apiError);
+
+    } catch (error) {
+      console.error('API request error:', error);
       return res.status(500).json({
         status: "error",
-        message: 'Gateway temporarily unavailable'
+        message: 'Gateway Error'
       });
     }
 
