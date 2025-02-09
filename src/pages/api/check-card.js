@@ -36,14 +36,38 @@ export default async function handler(req, res) {
 
       // Processar resposta baseado no tipo de checker
       if (checker === 'adyen') {
-        // Adyen retorna {"live":true} ou {"live":false}
-        if (checkResult.data && typeof checkResult.data.live === 'boolean') {
-          return res.json({
-            status: checkResult.data.live ? "live" : "die",
-            message: checkResult.data.live ? "Approved" : "Declined"
+        try {
+          // Verificar se temos uma resposta válida
+          if (!checkResult.data) {
+            throw new Error('Empty response from Adyen');
+          }
+
+          // Log para debug
+          console.log('Raw Adyen response:', checkResult.data);
+          console.log('Live status:', checkResult.data.live);
+
+          // Verificar exatamente se live é true
+          const isLive = checkResult.data.live === true;
+
+          // Se for live, retornar status live
+          if (isLive) {
+            return res.json({
+              status: "live",
+              message: "Approved"
+            });
+          } else {
+            return res.json({
+              status: "die",
+              message: "Declined"
+            });
+          }
+
+        } catch (adyenError) {
+          console.error('Adyen processing error:', adyenError);
+          return res.status(500).json({
+            status: "error",
+            message: "Gateway Error"
           });
-        } else {
-          throw new Error('Invalid Adyen response format');
         }
       } else {
         // Premium checker
