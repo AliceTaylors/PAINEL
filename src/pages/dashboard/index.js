@@ -149,20 +149,25 @@ export default function Painel() {
               return;
             }
 
-            const response = await axios.get('/api/external-check', {
-              params: {
-                user: user.login,
-                password: user.password,
-                checker: checkerType,
-                lista: cc
+            const response = await axios.post('/api/external-check', {
+              lista: cc,
+              checker: checkerType,
+              number: number,
+              month: month,
+              year: year,
+              cvv: cvv
+            }, {
+              headers: { 
+                token: window.localStorage.getItem('token'),
+                'Content-Type': 'application/json'
               }
             });
 
-            if (response.data.status === "error") {
+            if (response.data.error || response.data.status === "error") {
               setDies((old) => [{
                 return: "#ERROR",
                 cc: cc,
-                bin: response.data.msg || "Check Error",
+                bin: response.data.msg || response.data.error || "Check Error",
                 key: crypto.randomUUID()
               }, ...old]);
               return;
@@ -170,13 +175,16 @@ export default function Painel() {
 
             const binInfo = await getBinInfo(cc);
 
-            if (response.data.status === "live") {
+            if (response.data.status === "live" || (response.data.success && response.data.retorno?.includes('Pagamento Aprovado'))) {
               setLives((old) => [{
                 return: "#LIVE",
                 cc: cc,
                 bin: binInfo,
-                key: crypto.randomUUID()
+                key: crypto.randomUUID(),
+                details: response.data.details || {}
               }, ...old]);
+
+              await getUser();
             } else {
               setDies((old) => [{
                 return: "#DIE",
@@ -184,9 +192,11 @@ export default function Painel() {
                 bin: binInfo,
                 key: crypto.randomUUID()
               }, ...old]);
-            }
 
-            await getUser();
+              if (checkerType === 'premium') {
+                await getUser();
+              }
+            }
 
             if (listFormated.length === lives.length + dies.length + 1) {
               setChecking(false);
@@ -201,7 +211,7 @@ export default function Painel() {
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "API Connection Error",
+              bin: error.response?.data?.msg || "API Connection Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
@@ -216,10 +226,21 @@ export default function Painel() {
     try {
       const bin = cc.split('|')[0].slice(0, 6);
       const binUrl = `https://lookup.binlist.net/${bin}`;
-      const response = await axios.get(binUrl);
-      const data = response.data;
+      const response = await axios.get(binUrl, {
+        timeout: 5000 // 5 segundos timeout
+      });
       
-      return `${data.scheme?.toUpperCase() || ''} ${data.type?.toUpperCase() || ''} ${data.brand?.toUpperCase() || ''} ${data.country?.name || 'Unknown'}`;
+      if (!response.data) {
+        return `BIN: ${bin}`;
+      }
+
+      const data = response.data;
+      const scheme = data.scheme?.toUpperCase() || '';
+      const type = data.type?.toUpperCase() || '';
+      const brand = data.brand?.toUpperCase() || '';
+      const country = data.country?.name || 'Unknown';
+      
+      return `${scheme} ${type} ${brand} ${country}`.trim() || `BIN: ${bin}`;
     } catch (error) {
       return `BIN: ${cc.split('|')[0].slice(0, 6)}`;
     }
