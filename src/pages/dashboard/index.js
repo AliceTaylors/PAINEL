@@ -224,6 +224,42 @@ export default function Painel() {
     });
   }
 
+  const checkAdyenStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.API_1_URL}/adyen/check-status`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha na verificação do Adyen');
+      }
+
+      const data = await response.json();
+      return data.status;
+    } catch (error) {
+      console.error('Erro ao verificar status do Adyen:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const verifyAdyen = async () => {
+      const status = await checkAdyenStatus();
+      if (status) {
+        // Lógica para quando o Adyen estiver funcionando
+        console.log('Adyen está funcionando corretamente');
+      } else {
+        // Lógica para quando houver falha
+        console.log('Problema com a integração do Adyen');
+      }
+    };
+
+    verifyAdyen();
+  }, []);
+
   return (
     <>
       <Head>
