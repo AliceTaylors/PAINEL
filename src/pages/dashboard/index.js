@@ -153,90 +153,106 @@ export default function Painel() {
             const binInfo = await getBinInfo(cc);
 
             // Fazer requisição ao checker apropriado
-            const API_URL = checkerType === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
-            const checkResult = await axios.get(`${API_URL}${cc}`);
+            const API_URL = checkerType === 'adyen' ? process.env.NEXT_PUBLIC_API_1_URL : process.env.NEXT_PUBLIC_API_2_URL;
+            
+            try {
+              const checkResult = await axios.get(`${API_URL}`, {
+                params: {
+                  cc: number,
+                  month: month,
+                  year: year,
+                  cvv: cvv
+                },
+                timeout: 30000 // 30 segundos timeout
+              });
 
-            if (checkerType === 'adyen') {
-              // Processar resposta do Adyen
-              if (checkResult.data.live === true) {
-                setLives((old) => [{
-                  return: "#LIVE",
-                  cc: cc,
-                  bin: binInfo,
-                  key: crypto.randomUUID()
-                }, ...old]);
+              if (checkerType === 'adyen') {
+                // Processar resposta do Adyen
+                if (checkResult.data.live === true) {
+                  setLives((old) => [{
+                    return: "#LIVE",
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
 
-                // Atualizar saldo (-0.50)
-                await axios.post('/api/update-balance', {
-                  amount: -0.50,
-                  type: 'ADYEN LIVE',
-                  data: cc
-                }, {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
+                  await axios.post('/api/update-balance', {
+                    amount: -0.50,
+                    type: 'ADYEN LIVE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                } else if (checkResult.data.invalid) {
+                  setDies((old) => [{
+                    return: "#DIE",
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+                }
               } else {
-                setDies((old) => [{
-                  return: "#DIE",
-                  cc: cc,
-                  bin: binInfo,
-                  key: crypto.randomUUID()
-                }, ...old]);
+                // Processar resposta do Premium
+                if (checkResult.data.error) {
+                  setDies((old) => [{
+                    return: "#ERROR",
+                    cc: cc,
+                    bin: checkResult.data.retorno,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+
+                  await axios.post('/api/update-balance', {
+                    amount: -0.10,
+                    type: 'PREMIUM DIE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                } else if (checkResult.data.success) {
+                  setLives((old) => [{
+                    return: "#LIVE",
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+
+                  await axios.post('/api/update-balance', {
+                    amount: -1.00,
+                    type: 'PREMIUM LIVE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                } else {
+                  setDies((old) => [{
+                    return: "#DIE",
+                    cc: cc,
+                    bin: binInfo,
+                    key: crypto.randomUUID()
+                  }, ...old]);
+
+                  await axios.post('/api/update-balance', {
+                    amount: -0.10,
+                    type: 'PREMIUM DIE',
+                    data: cc
+                  }, {
+                    headers: { token: window.localStorage.getItem('token') }
+                  });
+                }
               }
-            } else {
-              // Processar resposta do Premium
-              if (checkResult.data.error) {
-                setDies((old) => [{
-                  return: "#ERROR",
-                  cc: cc,
-                  bin: checkResult.data.retorno,
-                  key: crypto.randomUUID()
-                }, ...old]);
 
-                // Cobrar die cost para Premium (-0.10)
-                await axios.post('/api/update-balance', {
-                  amount: -0.10,
-                  type: 'PREMIUM DIE',
-                  data: cc
-                }, {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
-              } else if (checkResult.data.success && checkResult.data.retorno.includes('Pagamento Aprovado')) {
-                setLives((old) => [{
-                  return: "#LIVE",
-                  cc: cc,
-                  bin: binInfo,
-                  key: crypto.randomUUID()
-                }, ...old]);
+              // Atualizar saldo do usuário
+              await getUser();
 
-                // Atualizar saldo (-1.00)
-                await axios.post('/api/update-balance', {
-                  amount: -1.00,
-                  type: 'PREMIUM LIVE',
-                  data: cc
-                }, {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
-              } else {
-                setDies((old) => [{
-                  return: "#DIE",
-                  cc: cc,
-                  bin: binInfo,
-                  key: crypto.randomUUID()
-                }, ...old]);
-
-                // Cobrar die cost para Premium (-0.10)
-                await axios.post('/api/update-balance', {
-                  amount: -0.10,
-                  type: 'PREMIUM DIE',
-                  data: cc
-                }, {
-                  headers: { token: window.localStorage.getItem('token') }
-                });
-              }
+            } catch (apiError) {
+              console.error('API Error:', apiError);
+              setDies((old) => [{
+                return: "#ERROR",
+                cc: cc,
+                bin: apiError.response?.data?.retorno || "API Connection Error",
+                key: crypto.randomUUID()
+              }, ...old]);
             }
-
-            // Atualizar saldo do usuário
-            await getUser();
 
             // Verificar se é o último cartão
             if (listFormated.length === lives.length + dies.length + 1) {
@@ -248,11 +264,11 @@ export default function Painel() {
             }
 
           } catch (error) {
-            console.error('Check error:', error);
+            console.error('General error:', error);
             setDies((old) => [{
               return: "#ERROR",
               cc: cc,
-              bin: "API Connection Error",
+              bin: "System Error",
               key: crypto.randomUUID()
             }, ...old]);
           }
