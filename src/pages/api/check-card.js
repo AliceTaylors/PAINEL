@@ -44,21 +44,19 @@ export default async function handler(req, res) {
 
           // Log para debug
           console.log('Raw Adyen response:', checkResult.data);
-          console.log('Live status:', checkResult.data.live);
 
-          // Verificar exatamente se live é true
-          const isLive = checkResult.data.live === true;
+          // Verificar se a resposta contém "Live" ou "Die"
+          const isLive = checkResult.data.includes("Live");
 
-          // Se for live, retornar status live
           if (isLive) {
             return res.json({
               status: "live",
-              message: "Approved"
+              message: checkResult.data.replace("Live (", "").replace(")", "") // Remove o prefixo "Live ("
             });
           } else {
             return res.json({
               status: "die",
-              message: "Declined"
+              message: checkResult.data.replace("Die (", "").replace(")", "") // Remove o prefixo "Die ("
             });
           }
 
