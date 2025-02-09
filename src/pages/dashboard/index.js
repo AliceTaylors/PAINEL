@@ -1,114 +1,520 @@
+import { useEffect, useState } from 'react';
+import withReactContent from 'sweetalert2-react-content';
+import Swal from 'sweetalert2';
 import axios from 'axios';
+import { useRouter } from 'next/router';
+import ReactLoading from 'react-loading';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faRocket,
+  faTrash,
+  faCreditCard,
+  faBitcoinSign,
+  faCartShopping,
+  faKey,
+  faDatabase,
+  faCartPlus,
+  faPersonCircleCheck,
+  faFire,
+  faMessage,
+} from '@fortawesome/free-solid-svg-icons';
+import Head from 'next/head';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import versionData from '../../version.json';
+import checkerSettings from '../../checkerSettings';
+import Header from '../../components/Header';
+import AccountDetails from '../../components/AccountDetails';
+import Footer from '../../components/Footer';
+import useTranslation from 'next-translate/useTranslation';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default function Painel() {
+  const { t, lang } = useTranslation('dashboard');
+  const [cards, setCards] = useState([]);
+  const alerts = withReactContent(Swal);
+  const [user, setUser] = useState(null);
+  const [isChecking, setChecking] = useState(false);
+  const [list, setList] = useState(null);
+  const [lives, setLives] = useState([]);
+  const [dies, setDies] = useState([]);
+  const router = useRouter();
+  const [status, setStatus] = useState(null);
+  const [checkerType, setCheckerType] = useState('adyen');
+
+  const getUser = async () => {
+    const res = await axios.get('/api/sessions', {
+      headers: { token: window.localStorage.getItem('token') },
+    });
+
+    if (res.data.error) {
+      router.push('/');
+    }
+
+    setUser(res.data.user);
+  };
+
+  const getStatus = async () => {
+    const res = await axios.get('/api/status');
+
+    setStatus(res.data);
+  };
+
+  const getData = async () => {
+    function shuffle(array) {
+      let currentIndex = array.length,
+        randomIndex;
+
+      // While there remain elements to shuffle.
+      while (currentIndex != 0) {
+        // Pick a remaining element.
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+          array[randomIndex],
+          array[currentIndex],
+        ];
+      }
+
+      return array;
+    }
+
+    const res = await axios.get('/api/cards', {
+      headers: { token: window.localStorage.getItem('token') },
+    });
+
+    if (res.data.error) {
+      router.push('/');
+    }
+    setCards(shuffle(res.data));
+  };
+
+  useEffect(() => {
+    getUser();
+    getData();
+    getStatus();
+  }, []);
+
+  async function handleStop(e) {
+    alerts
+      .fire({
+        icon: 'warning',
+        title: 'Attention',
+        text: 'Do you really want to stop and go back home?',
+        showCancelButton: true,
+        confirmButtonText: 'GO TO HOME',
+      })
+      .then((e) => {
+        if (e.isConfirmed) {
+          window.location.reload();
+        }
+      });
   }
 
-  try {
-    const { cc, checker } = req.body;
-    
-    if (!cc || !checker) {
-      return res.status(400).json({
-        status: "error",
-        message: 'Missing required parameters'
+  async function handleCheck(e) {
+    e.preventDefault();
+    getUser();
+
+    const minBalance = checkerType === 'adyen' ? 0.50 : 1.00;
+    if (user.balance < minBalance) {
+      return alerts.fire({
+        icon: 'warning',
+        html: `Insufficient funds to check cards. Minimum balance required: $${minBalance}`,
+      }).then(() => {
+        router.push('/dashboard/wallet');
       });
     }
 
-    // Selecionar URL baseado no tipo de checker
-    const API_URL = checker === 'adyen' ? process.env.API_1_URL : process.env.API_2_URL;
-    
-    if (!API_URL) {
-      return res.status(500).json({
-        status: "error",
-        message: 'Checker configuration error'
-      });
-    }
+    setChecking(true);
 
-    try {
-      // Fazer requisição ao checker
-      const checkResult = await axios.get(`${API_URL}/${cc}`, {
-        timeout: 30000,
-        headers: {
-          'Accept': 'text/plain',
-          'Content-Type': 'text/plain'
-        },
-        validateStatus: function (status) {
-          return status >= 200 && status < 500;
-        }
-      });
+    const listFormated = String(list)
+      .split('\n')
+      .filter((n) => n);
 
-      // Processar resposta baseado no tipo de checker
-      if (checker === 'adyen') {
-        try {
-          // Verificar se temos uma resposta válida
-          if (!checkResult.data) {
-            throw new Error('Empty response from Adyen');
+    listFormated.forEach((cc, index) => {
+      setTimeout(() => {
+        const checkCard = async () => {
+          try {
+            const [number, month, year, cvv] = cc.split('|');
+            if (!number || !month || !year || !cvv) {
+              setDies((old) => [{
+                return: "#ERROR",
+                cc: cc,
+                bin: "Invalid card format",
+                key: crypto.randomUUID()
+              }, ...old]);
+              return;
+            }
+
+            let binInfo;
+            try {
+              binInfo = await getBinInfo(cc);
+            } catch (binError) {
+              binInfo = `BIN: ${cc.split('|')[0].slice(0, 6)}`;
+            }
+
+            try {
+              const response = await axios.post('/api/check-card', {
+                cc: cc,
+                checker: checkerType
+              });
+
+              const { status, message } = response.data;
+
+              if (status === "live") {
+                setLives((old) => [{
+                  return: "#LIVE",
+                  cc: cc,
+                  bin: `${binInfo} / ${message}`,
+                  key: crypto.randomUUID()
+                }, ...old]);
+
+                await axios.post('/api/update-balance', {
+                  amount: checkerType === 'adyen' ? -0.50 : -1.00,
+                  type: `${checkerType.toUpperCase()} LIVE`,
+                  data: cc
+                }, {
+                  headers: { token: window.localStorage.getItem('token') }
+                });
+              } else if (status === "die") {
+                setDies((old) => [{
+                  return: "#DIE",
+                  cc: cc,
+                  bin: `${binInfo} / ${message}`,
+                  key: crypto.randomUUID()
+                }, ...old]);
+              } else {
+                setDies((old) => [{
+                  return: "#ERROR",
+                  cc: cc,
+                  bin: `${binInfo} / ${message}`,
+                  key: crypto.randomUUID()
+                }, ...old]);
+              }
+
+              await getUser();
+
+              // Verificar se é o último cartão
+              if (listFormated.length === index + 1) {
+                setChecking(false);
+                alerts.fire({
+                  icon: 'success',
+                  html: 'Ready!<br/>' + listFormated.length + ' card(s) checked!',
+                });
+              }
+
+            } catch (error) {
+              setDies((old) => [{
+                return: "#ERROR",
+                cc: cc,
+                bin: `${binInfo} / Gateway Error`,
+                key: crypto.randomUUID()
+              }, ...old]);
+            }
+          } catch (error) {
+            setDies((old) => [{
+              return: "#ERROR",
+              cc: cc,
+              bin: "Invalid Card Format",
+              key: crypto.randomUUID()
+            }, ...old]);
           }
+        };
 
-          // Log para debug
-          console.log('Raw Adyen response:', checkResult.data);
-
-          // A resposta do Adyen vem como string
-          const responseText = checkResult.data;
-
-          // Verificar se é uma resposta válida
-          if (typeof responseText !== 'string') {
-            throw new Error('Invalid response format');
-          }
-
-          // Processar a resposta
-          if (responseText === "Live") {
-            return res.json({
-              status: "live",
-              message: "Approved"
-            });
-          } else if (responseText === "Die") {
-            return res.json({
-              status: "die",
-              message: "Declined"
-            });
-          } else {
-            throw new Error('Unexpected response: ' + responseText);
-          }
-
-        } catch (adyenError) {
-          console.error('Adyen processing error:', adyenError);
-          return res.status(500).json({
-            status: "error",
-            message: adyenError.message || "Gateway Error"
-          });
-        }
-      } else {
-        // Premium checker
-        if (checkResult.data.error) {
-          return res.json({
-            status: "error",
-            message: checkResult.data.retorno.replace(/\s*\[\d+\]$/, '')
-          });
-        }
-        
-        const isLive = checkResult.data.success && 
-          checkResult.data.retorno.includes("Pagamento Aprovado");
-
-        return res.json({
-          status: isLive ? "live" : "die",
-          message: checkResult.data.retorno.replace(/\s*\[\d+\]$/, '')
-        });
-      }
-    } catch (apiError) {
-      console.error('API request error:', apiError);
-      return res.status(500).json({
-        status: "error",
-        message: 'Gateway temporarily unavailable'
-      });
-    }
-
-  } catch (error) {
-    console.error('Handler error:', error);
-    return res.status(500).json({
-      status: "error",
-      message: 'Internal server error'
+        checkCard();
+      }, 3000 * index);
     });
   }
-} 
+
+  async function getBinInfo(cc) {
+    try {
+      const bin = cc.split('|')[0].slice(0, 6);
+      const binUrl = `https://lookup.binlist.net/${bin}`;
+      const response = await axios.get(binUrl, {
+        timeout: 5000
+      });
+      
+      if (!response.data) {
+        return `BIN: ${bin}`;
+      }
+
+      const data = response.data;
+      const type = data.type?.toUpperCase() || '';
+      const brand = data.brand?.toUpperCase() || '';
+      const bank = data.bank?.name?.toUpperCase() || 'UNKNOWN BANK';
+      const country = data.country?.alpha2 || '';
+      
+      return `${type} / ${brand} / ${bank} / # ${country}`;
+    } catch (error) {
+      return `BIN: ${bin}`;
+    }
+  }
+
+  useEffect(() => {
+    function checkVersion() {
+      if (!window.localStorage.getItem(versionData.versionCode)) {
+        alerts.fire({
+          icon: 'info',
+          title: 'New version: ' + versionData.versionCode + '!',
+          html: versionData.updates,
+        });
+        window.localStorage.setItem(versionData.versionCode, 'true');
+      }
+    }
+    checkVersion();
+  }, []);
+
+  async function handleBuyCard(cardId) {
+    const res = await axios.post(
+      '/api/cards',
+      { id: cardId },
+      {
+        headers: { token: window.localStorage.getItem('token') },
+      }
+    );
+
+    if (res.data.error) {
+      return alerts
+        .fire({
+          icon: 'warning',
+          showCancelButton: true,
+          html: res.data.error,
+          cancelButtonText: 'Cancel',
+          confirmButtonText: 'Charge',
+        })
+        .then((res) => {
+          if (res.isConfirmed) return router.push('/dashboard/wallet');
+        });
+    }
+    getData();
+    getUser();
+
+    alerts.fire({
+      icon: 'success',
+      html: `<b>PURCHASED CARD: </b><br/> <b>NUMBER:</b> ${res.data.card.number}<br/><b>DETAILS:</b> ${res.data.card.data}<br/><b>PIN:</b> ${res.data.card.pin}<br/>${res.data.card.bin}<br/>PRICE: $${res.data.card.price}`,
+    });
+  }
+
+  const checkAdyenStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.API_1_URL}/adyen/check-status`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha na verificação do Adyen');
+      }
+
+      const data = await response.json();
+      return data.status;
+    } catch (error) {
+      console.error('Erro ao verificar status do Adyen:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const verifyAdyen = async () => {
+      const status = await checkAdyenStatus();
+      if (status) {
+        // Lógica para quando o Adyen estiver funcionando
+        console.log('Adyen está funcionando corretamente');
+      } else {
+        // Lógica para quando houver falha
+        console.log('Problema com a integração do Adyen');
+      }
+    };
+
+    verifyAdyen();
+  }, []);
+
+  return (
+    <>
+      <Head>
+        <title>SECCX.PRO | Dashboard</title>
+      </Head>
+
+      {user && (
+        <div className="root" style={{ width: '80%' }}>
+          <Header user={user} />
+          {!isChecking ? (
+            <>
+              <div
+                className="warns"
+                style={{ fontSize: '15px', letterSpacing: 1.05 }}
+              >
+                <div
+                  onClick={() => {
+                    router.push('/dashboard/wallet');
+                  }}
+                  style={{
+                    color: '#f5f5f5',
+                    background: 'linear-gradient(to left, greenyellow, #111)',
+                  }}
+                >
+                  {t('promotion')}
+                </div>
+              </div>
+
+              <br />
+
+              <AccountDetails user={user} />
+             
+
+              <div className="checker">
+                <h2>
+                  <span>
+                    {' '}
+                    <FontAwesomeIcon icon={faCreditCard} /> CC CHECKER <br />
+                    <small
+                      style={{
+                        fontSize: '14px',
+                        opacity: 0.9,
+                        fontWeight: 'lighter',
+                      }}
+                    >
+                      {checkerType === 'adyen' ? 'Adyen Gateway: Fullz & Gens' : 'Premium Gateway'}
+                    </small>
+                  </span>
+                  <div>
+                    <select 
+                      value={checkerType}
+                      onChange={(e) => setCheckerType(e.target.value)}
+                      style={{
+                        marginRight: '10px',
+                        padding: '5px',
+                        borderRadius: '5px'
+                      }}
+                    >
+                      <option value="adyen">Adyen ($0.50/live)</option>
+                      <option value="premium">Premium ($1.00/live, $0.10/die)</option>
+                    </select>
+                  </div>
+                </h2>
+                <form
+                  onSubmit={handleCheck}
+                  style={{ display: 'flex', flexDirection: 'column' }}
+                >
+                  <textarea
+                    onChange={(e) => setList(e.target.value)}
+                    placeholder="Format: 
+       50541054150454054|00|0000|000"
+                    name=""
+                    id=""
+                    cols="30"
+                    rows="10"
+                  ></textarea>
+                  <button style={{ marginTop: '20px' }}>
+                    {' '}
+                    <FontAwesomeIcon icon={faRocket} /> Check
+                  </button>
+                </form>
+              </div>
+              <br />
+             
+            </>
+          ) : (
+            <>
+              <div className="checker-status">
+                <h2>Running check...</h2>
+
+                <span>
+                  Lives: <b style={{ color: 'greenyellow' }}>{lives.length}</b>{' '}
+                  / Dies: <b style={{ color: 'tomato' }}>{dies.length}</b> /
+                  Checkeds:{' '}
+                  <b style={{ color: 'deepskyblue' }}>
+                    {lives.length + dies.length}
+                  </b>{' '}
+                  / Live Rate:{' '}
+                  {isNaN((lives.length / (lives.length + dies.length)) * 100)
+                    ? '0'
+                    : (
+                        parseFloat(
+                          lives.length / (lives.length + dies.length)
+                        ) * 100
+                      ).toFixed(0)}
+                  %
+                </span>
+
+                <button onClick={handleStop}>
+                  <FontAwesomeIcon icon={faTrash} /> Kill Proccess
+                </button>
+
+                <div className="lives" style={{ marginTop: '20px' }}>
+                  <span style={{ 
+                    color: '#f5f5f5', 
+                    fontSize: '13px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    LIVES
+                  </span>
+                  {lives.length < 1 && (
+                    <small style={{ opacity: 0.5 }}>Nothing yet...</small>
+                  )}
+                  {lives.map((item) => (
+                    <div key={item.key} style={{ 
+                      backgroundColor: '#111',
+                      padding: '10px',
+                      marginBottom: '5px',
+                      borderRadius: '5px'
+                    }}>
+                      {item.return} / {item.cc} / {item.bin} / CHECKED BY SECCX.PRO
+                    </div>
+                  ))}
+                </div>
+
+                <div className="dies" style={{ marginTop: '30px' }}>
+                  <span style={{
+                    color: '#f5f5f5',
+                    fontSize: '13px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    DIES
+                  </span>
+                  <br />
+                  {dies.length < 1 && (
+                    <small style={{ opacity: 0.5 }}>Nothing yet...</small>
+                  )}
+                  {dies.map((item) => (
+                    <div key={item.key} style={{
+                      backgroundColor: '#111',
+                      padding: '10px',
+                      marginBottom: '5px',
+                      borderRadius: '5px'
+                    }}>
+                      {item.return} / {item.cc} / {item.bin} / CHECKED BY SECCX.PRO
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                ></div>
+              </div>
+            </>
+          )}
+
+
+
+
+
+            
+          <br />
+          <Footer />
+        </div>
+      )}
+    </>
+  );
+}
