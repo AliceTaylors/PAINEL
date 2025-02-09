@@ -31,12 +31,25 @@ export default async function handler(req, res) {
         // Processar resposta do Adyen
         const response = checkResult.data;
         
-        if (response === "Live") {
+        // Verificar se a resposta contém a string "Live" ou "Die"
+        if (typeof response === 'string' && response.includes('Live')) {
           return res.json({
             status: "live",
             message: "Approved"
           });
-        } else if (response === "Die") {
+        } else if (typeof response === 'string' && response.includes('Die')) {
+          return res.json({
+            status: "die",
+            message: "Declined"
+          });
+        } else if (response && response.live === true) {
+          // Verificar também o formato {"live":true}
+          return res.json({
+            status: "live",
+            message: "Approved"
+          });
+        } else if (response && response.live === false) {
+          // Verificar também o formato {"live":false}
           return res.json({
             status: "die",
             message: "Declined"
@@ -44,7 +57,7 @@ export default async function handler(req, res) {
         } else {
           return res.json({
             status: "error",
-            message: "Invalid response"
+            message: "Gateway Error"
           });
         }
       } else {
